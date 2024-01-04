@@ -17,6 +17,7 @@
 #include "hash.h"
 #include "tables.h"
 #include <string.h>
+#include <pthread.h>
 /* compute a round of P512 */
 #define ROUNDP512(m_in, m, r) do {					\
     long long* T_m64 = (long long*)T;						\
@@ -181,6 +182,64 @@
   } while (0)
 
 
+
+typedef struct {
+    hashState *ctx;        // Pointer to the hash state
+    const u8 *msg_block;   // Pointer to the current message block
+    long long *resultBlock ;
+    pthread_t thread_id;        // Thread ID
+    // ... any other arguments needed for processing ...
+} ThreadArgs;
+
+
+ThreadArgs *setup_thread_args(ThreadArgs *args, hashState *ctx, const u8 *msg_block) {
+    if (msg_block == NULL) {
+        // Handle memory allocation failure
+        printf('msg block nill');
+    }
+    args->ctx = ctx;
+    args->msg_block = msg_block;
+    args-> resultBlock = malloc(COLS512 * sizeof(long long));
+    return args;
+}
+
+
+void ProcessBlock(ThreadArgs* args) {
+    long long *m64_m = args->resultBlock, tmp[COLS512];
+    u32 *msg_32 = (u32*)args->msg_block;
+
+    for (int i = 0; i < COLS512; i++) {
+      union {
+        u32 msg_32[2];
+        long long m64;
+      } u;
+
+      u.msg_32[0] = msg_32[2*i];
+      u.msg_32[1] = msg_32[2*i+1];
+      m64_m[i] = u.m64;
+      // m64_hm[i] = m64_h[i] ^ m64_m[i];
+    }
+
+    // Perform the ROUNDQ512 operations
+    ROUNDQ512(m64_m, tmp, 0);
+    ROUNDQ512(tmp, m64_m, 1);
+    ROUNDQ512(m64_m, tmp, 2);
+    ROUNDQ512(tmp, m64_m, 3);
+    ROUNDQ512(m64_m, tmp, 4);
+    ROUNDQ512(tmp, m64_m, 5);
+    ROUNDQ512(m64_m, tmp, 6);
+    ROUNDQ512(tmp, m64_m, 7);
+    ROUNDQ512(m64_m, tmp, 8);
+    ROUNDQ512(tmp, m64_m, 9);
+
+    // ... and so on for the rest of the ROUNDQ512 calls ...
+
+    // // Final combination steps (similar to the end of the while loop in Transform512)
+    // for (int i = 0; i < COLS512; i++) {
+    //     // ... Same combination steps as in Transform512 ...
+    // }
+}
+
 /* digest part of a message in short variants */
 int Transform512(hashState *ctx, const u8 *msg, int msglen) {
   int i;
@@ -188,6 +247,29 @@ int Transform512(hashState *ctx, const u8 *msg, int msglen) {
   u32 *msg_32;
 
   //_mm_empty();
+  // Determine the number of blocks
+  int num_blocks = msglen / SIZE512;
+  //  pthread_t threads[num_blocks];
+  ThreadArgs threads_args[num_blocks];
+  int block_index = 0;
+
+  for (block_index = 0; block_index < num_blocks; block_index++) {
+    // Arguments for ProcessBlock function
+    setup_thread_args(&threads_args[block_index], ctx, msg + (block_index * SIZE512));
+    // pthread_create(&threads_args[block_index].thread_id, NULL, ProcessBlock, &threads_args[block_index]);
+    pthread_create(&threads_args[block_index].thread_id, NULL, ProcessBlock, &threads_args[block_index]);
+  }
+  // for (block_index = 0; block_index < num_blocks; block_index++) {
+  //   // Arguments for ProcessBlock function
+  //   // setup_thread_args(&threads_args[block_index], ctx, msg + (block_index * SIZE512));
+  // }
+
+  // Wait for all threads to complete
+  for (block_index = 0;block_index < num_blocks; block_index++) {
+    pthread_join(threads_args[block_index].thread_id, NULL);
+  }
+
+  block_index = 0;
 
   while (msglen >= SIZE512) {
     msg_32 = (u32*)msg;
@@ -215,20 +297,27 @@ int Transform512(hashState *ctx, const u8 *msg, int msglen) {
     ROUNDP512(tmp, m64_hm, 7);
     ROUNDP512(m64_hm, tmp, 8);
     ROUNDP512(tmp, m64_hm, 9);
-
-    ROUNDQ512(m64_m, tmp, 0);
-    ROUNDQ512(tmp, m64_m, 1);
-    ROUNDQ512(m64_m, tmp, 2);
-    ROUNDQ512(tmp, m64_m, 3);
-    ROUNDQ512(m64_m, tmp, 4);
-    ROUNDQ512(tmp, m64_m, 5);
-    ROUNDQ512(m64_m, tmp, 6);
-    ROUNDQ512(tmp, m64_m, 7);
-    ROUNDQ512(m64_m, tmp, 8);
-    ROUNDQ512(tmp, m64_m, 9);
     
+
+    // ROUNDQ512(m64_m, tmp, 0);
+    // ROUNDQ512(tmp, m64_m, 1);
+    // ROUNDQ512(m64_m, tmp, 2);
+    // ROUNDQ512(tmp, m64_m, 3);
+    // ROUNDQ512(m64_m, tmp, 4);
+    // ROUNDQ512(tmp, m64_m, 5);
+    // ROUNDQ512(m64_m, tmp, 6);
+    // ROUNDQ512(tmp, m64_m, 7);
+    // ROUNDQ512(m64_m, tmp, 8);
+    // ROUNDQ512(tmp, m64_m, 9);
+
+    // m64_m = threads_args[block_index].resultBlock;
+    
+    // for (i = 0; i < COLS512; i++) {
+    //   m64_h[i] = m64_h[i] ^ m64_m [i];
+    //   m64_h[i] = m64_h[i] ^ m64_hm[i];
+    // }
     for (i = 0; i < COLS512; i++) {
-      m64_h[i] = m64_h[i] ^ m64_m [i];
+      m64_h[i] = m64_h[i] ^ threads_args[block_index].resultBlock[i];
       m64_h[i] = m64_h[i] ^ m64_hm[i];
     }
 
@@ -237,7 +326,9 @@ int Transform512(hashState *ctx, const u8 *msg, int msglen) {
     ctx->block_counter++;
 
     msg += SIZE512;
-    msglen -= SIZE512;
+    msglen -= SIZE512;    
+    block_index++;
+
   }
 
   return 0;
@@ -536,7 +627,7 @@ int main(int argc, char **argv) {
 
     crypto_hash(ct, hostData, dataSize);
     printHexArray(ct, 32);
-    printf("yelllooooow\n");
+    printf("done done\n");
     return 1;
 }
 
