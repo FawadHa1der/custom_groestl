@@ -404,17 +404,51 @@ HashReturn Update(hashState* ctx,
 		  const BitSequence* input,
 		  DataLength databitlen) {
   int index = 0;
-  int msglen = (int)(databitlen/8);
+  const int msglen = (int)(databitlen/8);
+  int newMsgLen = msglen;
   int rem = (int)(databitlen%8);
   uchar* byteInput = input;
 
+  ctx->block_counter = msglen / ctx->statesize;
+ 
+
   int post_message_index =  index + ((msglen-index)/ctx->statesize)*ctx->statesize;
+
+  byteInput[newMsgLen] = 0x80;
+  newMsgLen++;
+
+  const int remainder = (newMsgLen)%ctx->statesize;
+  int remainderIndex = remainder;
   /* store remaining data in buffer */
-  while (post_message_index < msglen) {
-    byteInput[msglen + (int)ctx->buf_ptr++] = input[post_message_index++];
-    // ctx->buffer[(int)ctx->buf_ptr++] = input[post_message_index++];
+  if (remainderIndex > ctx->statesize - LENGTHFIELDLEN) {
+    // extra buffer
+    while (remainderIndex < ctx->statesize) {
+      byteInput[newMsgLen + remainderIndex] = 0;
+      remainderIndex++;
+    }
+    newMsgLen = newMsgLen + (ctx->statesize - remainder);
+    remainderIndex = 0;
   }
-  byteInput[msglen + (int)ctx->buf_ptr++] = 0x80;
+
+  while (remainderIndex < ctx->statesize-LENGTHFIELDLEN) {
+    byteInput[newMsgLen] = 0;
+    remainderIndex++;
+    newMsgLen++;
+  }
+  ctx->block_counter++;
+
+  byteInput[newMsgLen + (remainderIndex -1 )] = (u8)ctx->block_counter;
+  newMsgLen += LENGTHFIELDLEN;
+
+  Transform(ctx, input, newMsgLen);
+  OutputTransformation(ctx);
+  
+  return SUCCESS;
+
+  // while (post_message_index < msglen) {
+  //   byteInput[msglen + (int)ctx->buf_ptr++] = input[post_message_index++];
+  //   // ctx->buffer[(int)ctx->buf_ptr++] = input[post_message_index++];
+  // }
 
 
   /* non-integral number of message bytes can only be supplied in the
@@ -447,9 +481,7 @@ HashReturn Update(hashState* ctx,
   // index += ((msglen-index)/ctx->statesize)*ctx->statesize;
 
 /////////////////////////////////////////////////////////////////////////////MODIFIED, finalyze brought in here///////////////////////////////////
-  int i, j = 0, hashbytelen = ctx->hashbitlen/8;
-  u8 *s = (BitSequence*)ctx->chaining;
-
+ 
 
   /* pad with '0'-bits */
   if (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN) {
