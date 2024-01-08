@@ -395,7 +395,6 @@ HashReturn Init(hashState* ctx,
   ctx->hashbitlen = hashbitlen;
   ctx->buf_ptr = 0;
   ctx->block_counter = 0;
-  ctx->bits_in_last_byte = 0;
 
   return SUCCESS;
 }
@@ -407,26 +406,15 @@ HashReturn Update(hashState* ctx,
   int index = 0;
   int msglen = (int)(databitlen/8);
   int rem = (int)(databitlen%8);
+  uchar* byteInput = input;
 
   int post_message_index =  index + ((msglen-index)/ctx->statesize)*ctx->statesize;
   /* store remaining data in buffer */
   while (post_message_index < msglen) {
-    ctx->buffer[(int)ctx->buf_ptr++] = input[post_message_index++];
+    byteInput[msglen + (int)ctx->buf_ptr++] = input[post_message_index++];
+    // ctx->buffer[(int)ctx->buf_ptr++] = input[post_message_index++];
   }
-    /* if non-integral number of bytes have been supplied, store
-     remaining bits in last byte, together with information about
-     number of bits */
-  if (rem) {
-    ctx->bits_in_last_byte = rem;
-    ctx->buffer[(int)ctx->buf_ptr++] = input[post_message_index];
-  }
-  /* pad with '1'-bit and first few '0'-bits */
-  if (ctx->bits_in_last_byte) {
-    ctx->buffer[(int)ctx->buf_ptr-1] &= ((1<<ctx->bits_in_last_byte)-1)<<(8-ctx->bits_in_last_byte);
-    ctx->buffer[(int)ctx->buf_ptr-1] ^= 0x1<<(7-ctx->bits_in_last_byte);
-    ctx->bits_in_last_byte = 0;
-  }
-  else ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
+  byteInput[msglen + (int)ctx->buf_ptr++] = 0x80;
 
 
   /* non-integral number of message bytes can only be supplied in the
@@ -467,31 +455,30 @@ HashReturn Update(hashState* ctx,
   if (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN) {
     /* padding requires two blocks */
     while (ctx->buf_ptr < ctx->statesize) {
-      ctx->buffer[(int)ctx->buf_ptr++] = 0;
+      byteInput[msglen +(int)ctx->buf_ptr++] = 0;
     }
     /* digest first padding block */
-    Transform(ctx, ctx->buffer, ctx->statesize);
+    // Transform(ctx, ctx->buffer, ctx->statesize);
+    Transform(ctx, &byteInput[msglen], ctx->statesize);
     ctx->buf_ptr = 0;
   }
 
   while (ctx->buf_ptr < ctx->statesize-LENGTHFIELDLEN) {
-    ctx->buffer[(int)ctx->buf_ptr++] = 0;
+    byteInput[msglen + (int)ctx->buf_ptr++] = 0;
   }
 
   /* length padding */
   ctx->block_counter++;
   ctx->buf_ptr = ctx->statesize;
   while (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN) {
-    ctx->buffer[(int)--ctx->buf_ptr] = (u8)ctx->block_counter;
+    byteInput[msglen + (int)--ctx->buf_ptr] = (u8)ctx->block_counter;
     ctx->block_counter >>= 8;
   }
 
   /* digest final padding block */
-  Transform(ctx, ctx->buffer, ctx->statesize);
+  Transform(ctx, &byteInput[msglen], ctx->statesize);
   /* perform output transformation */
   OutputTransformation(ctx);
-
-
   
   return SUCCESS;
 }
@@ -590,7 +577,7 @@ int main(int argc, char **argv) {
     fseek(file, 0, SEEK_SET);
 
     // Host array
-    unsigned char *hostData = (unsigned char*)malloc(dataSize);
+    unsigned char *hostData = (unsigned char*)malloc(dataSize + (SIZE512 * 2));
     if (hostData == NULL) {
       printf("Error allocating memory.\n");
       fclose(file);
@@ -600,10 +587,10 @@ int main(int argc, char **argv) {
     fread(hostData, sizeof(unsigned char), dataSize, file);
     fclose(file);
 
-    const char* message = "my message";
+    const char* message = "my message gdfjhghjkfdhgjklfdshgjklfdhgjkfdshkfjsdhgjfdlshgjkfdsghfjdklhgjfkdlghfjdkslhgfdjksgsdfhj    dsdscxcd3232322cc";
     size_t size = strlen(message);
 
-    unsigned char* data = (unsigned char*)malloc(size );
+    unsigned char* data = (unsigned char*)malloc(size + (SIZE512 * 2));
     memcpy(data, message, size);
     crypto_hash(ct, data, size);
 

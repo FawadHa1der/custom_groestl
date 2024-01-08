@@ -65,8 +65,8 @@ typedef struct {
   int hashbitlen;           /* output length in bits */
   BitSequence *buffer;      /* data buffer */
   int buf_ptr;              /* data buffer pointer */
-  int bits_in_last_byte;    /* no. of message bits in last byte of
-			       data buffer */
+  // int bits_in_last_byte;    /* no. of message bits in last byte of
+	// 		       data buffer */
   int columns;              /* no. of columns in state */
   int statesize;            /* total no. of bytes in state */
 } hashState;
