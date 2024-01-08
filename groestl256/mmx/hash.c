@@ -532,9 +532,9 @@ int main(int argc, char **argv) {
 
     printf("Data: %s\n", hostData);
     printf("Size: %zu\n", dataSize);
-    // crypto_hash(ct, data, size);
+    crypto_hash(ct, data, size);
 
-    crypto_hash(ct, hostData, dataSize);
+//    crypto_hash(ct, hostData, dataSize);
     printHexArray(ct, 32);
     printf("yelllooooow\n");
     return 1;
