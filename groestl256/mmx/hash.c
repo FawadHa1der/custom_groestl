@@ -206,17 +206,10 @@ ThreadArgs *setup_thread_args(ThreadArgs *args, hashState *ctx, const u8 *msg_bl
 
 void ProcessBlock(ThreadArgs* args) {
     long long *m64_m = args->resultBlock, tmp[COLS512];
-    u32 *msg_32 = (u32*)args->msg_block;
+    u64 *msg_64 = (u64*)args->msg_block;
 
     for (int i = 0; i < COLS512; i++) {
-      union {
-        u32 msg_32[2];
-        long long m64;
-      } u;
-
-      u.msg_32[0] = msg_32[2*i];
-      u.msg_32[1] = msg_32[2*i+1];
-      m64_m[i] = u.m64;
+      m64_m[i] = msg_64[i];
       // m64_hm[i] = m64_h[i] ^ m64_m[i];
     }
 
@@ -244,9 +237,8 @@ void ProcessBlock(ThreadArgs* args) {
 int Transform512(hashState *ctx, const u8 *msg, int msglen) {
   int i;
   long long m64_m[COLS512], *m64_h, m64_hm[COLS512], tmp[COLS512];
-  u32 *msg_32;
+  u64 *msg_64;
 
-  //_mm_empty();
   // Determine the number of blocks
   int num_blocks = msglen / SIZE512;
   //  pthread_t threads[num_blocks];
@@ -256,13 +248,8 @@ int Transform512(hashState *ctx, const u8 *msg, int msglen) {
   for (block_index = 0; block_index < num_blocks; block_index++) {
     // Arguments for ProcessBlock function
     setup_thread_args(&threads_args[block_index], ctx, msg + (block_index * SIZE512));
-    // pthread_create(&threads_args[block_index].thread_id, NULL, ProcessBlock, &threads_args[block_index]);
     pthread_create(&threads_args[block_index].thread_id, NULL, ProcessBlock, &threads_args[block_index]);
   }
-  // for (block_index = 0; block_index < num_blocks; block_index++) {
-  //   // Arguments for ProcessBlock function
-  //   // setup_thread_args(&threads_args[block_index], ctx, msg + (block_index * SIZE512));
-  // }
 
   // Wait for all threads to complete
   for (block_index = 0;block_index < num_blocks; block_index++) {
@@ -270,20 +257,12 @@ int Transform512(hashState *ctx, const u8 *msg, int msglen) {
   }
 
   block_index = 0;
-
   while (msglen >= SIZE512) {
-    msg_32 = (u32*)msg;
+    msg_64 = (u64*)msg;
     m64_h = (long long*)ctx->chaining;
 
     for (i = 0; i < COLS512; i++) {
-      union {
-        u32 msg_32[2];
-        long long m64;
-      } u;
-
-      u.msg_32[0] = msg_32[2*i];
-      u.msg_32[1] = msg_32[2*i+1];
-      m64_m[i] = u.m64;
+      m64_m[i] = msg_64[i];
       m64_hm[i] = m64_h[i] ^ m64_m[i];
     }
 
@@ -429,65 +408,60 @@ HashReturn Update(hashState* ctx,
   int msglen = (int)(databitlen/8);
   int rem = (int)(databitlen%8);
 
-  /* non-integral number of message bytes can only be supplied in the
-     last call to this function */
-  if (ctx->bits_in_last_byte) return FAIL;
-
-  /* if the buffer contains data that has not yet been digested, first
-     add data to buffer until full */
-  if (ctx->buf_ptr) {
-    while (ctx->buf_ptr < ctx->statesize && index < msglen) {
-      ctx->buffer[(int)ctx->buf_ptr++] = input[index++];
-    }
-    if (ctx->buf_ptr < ctx->statesize) {
-      /* buffer still not full, return */
-      if (rem) {
-	ctx->bits_in_last_byte = rem;
-	ctx->buffer[(int)ctx->buf_ptr++] = input[index];
-      }
-      return SUCCESS;
-    }
-
-    /* digest buffer */
-    ctx->buf_ptr = 0;
-    Transform(ctx, ctx->buffer, ctx->statesize);
-  }
-
-  /* digest bulk of message */
-  Transform(ctx, input+index, msglen-index);
-  index += ((msglen-index)/ctx->statesize)*ctx->statesize;
-
+  int post_message_index =   index + ((msglen-index)/ctx->statesize)*ctx->statesize;
   /* store remaining data in buffer */
-  while (index < msglen) {
-    ctx->buffer[(int)ctx->buf_ptr++] = input[index++];
+  while (post_message_index < msglen) {
+    ctx->buffer[(int)ctx->buf_ptr++] = input[post_message_index++];
   }
-
-  /* if non-integral number of bytes have been supplied, store
+    /* if non-integral number of bytes have been supplied, store
      remaining bits in last byte, together with information about
      number of bits */
   if (rem) {
     ctx->bits_in_last_byte = rem;
-    ctx->buffer[(int)ctx->buf_ptr++] = input[index];
+    ctx->buffer[(int)ctx->buf_ptr++] = input[post_message_index];
   }
-  return SUCCESS;
-}
+  /* pad with '1'-bit and first few '0'-bits */
+  if (ctx->bits_in_last_byte) {
+    ctx->buffer[(int)ctx->buf_ptr-1] &= ((1<<ctx->bits_in_last_byte)-1)<<(8-ctx->bits_in_last_byte);
+    ctx->buffer[(int)ctx->buf_ptr-1] ^= 0x1<<(7-ctx->bits_in_last_byte);
+    ctx->bits_in_last_byte = 0;
+  }
+  else ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
 
-#define BILB ctx->bits_in_last_byte
 
-/* finalise: process remaining data (including padding), perform
-   output transformation, and write hash result to 'output' */
-HashReturn Final(hashState* ctx,
-		 BitSequence* output) {
+  /* non-integral number of message bytes can only be supplied in the
+     last call to this function */
+  //if (ctx->bits_in_last_byte) return FAIL;
+
+  /* if the buffer contains data that has not yet been digested, first
+     add data to buffer until full */
+  // if (ctx->buf_ptr) {
+  //   while (ctx->buf_ptr < ctx->statesize && index < msglen) {
+  //     ctx->buffer[(int)ctx->buf_ptr++] = input[index++];
+  //   }
+  //   if (ctx->buf_ptr < ctx->statesize) {
+  //     /* buffer still not full, return */
+  //     if (rem) {
+  //       ctx->bits_in_last_byte = rem;
+  //       ctx->buffer[(int)ctx->buf_ptr++] = input[index];
+  //     }
+  //     return SUCCESS;
+  //   }
+
+  //   /* digest buffer */
+  //   ctx->buf_ptr = 0;
+  //   Transform(ctx, ctx->buffer, ctx->statesize);
+  // }
+
+  /* digest bulk of message */
+
+  Transform(ctx, input+index, msglen-index);
+  // index += ((msglen-index)/ctx->statesize)*ctx->statesize;
+
+/////////////////////////////////////////////////////////////////////////////MODIFIED, finalyze brought in here///////////////////////////////////
   int i, j = 0, hashbytelen = ctx->hashbitlen/8;
   u8 *s = (BitSequence*)ctx->chaining;
 
-  /* pad with '1'-bit and first few '0'-bits */
-  if (BILB) {
-    ctx->buffer[(int)ctx->buf_ptr-1] &= ((1<<BILB)-1)<<(8-BILB);
-    ctx->buffer[(int)ctx->buf_ptr-1] ^= 0x1<<(7-BILB);
-    BILB = 0;
-  }
-  else ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
 
   /* pad with '0'-bits */
   if (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN) {
@@ -499,6 +473,7 @@ HashReturn Final(hashState* ctx,
     Transform(ctx, ctx->buffer, ctx->statesize);
     ctx->buf_ptr = 0;
   }
+
   while (ctx->buf_ptr < ctx->statesize-LENGTHFIELDLEN) {
     ctx->buffer[(int)ctx->buf_ptr++] = 0;
   }
@@ -515,6 +490,20 @@ HashReturn Final(hashState* ctx,
   Transform(ctx, ctx->buffer, ctx->statesize);
   /* perform output transformation */
   OutputTransformation(ctx);
+
+
+  
+  return SUCCESS;
+}
+
+#define BILB ctx->bits_in_last_byte
+
+/* finalise: process remaining data (including padding), perform
+   output transformation, and write hash result to 'output' */
+HashReturn Final(hashState* ctx,
+		 BitSequence* output) {
+  int i, j = 0, hashbytelen = ctx->hashbitlen/8;
+  u8 *s = (BitSequence*)ctx->chaining;
 
   /* store hash result in output */
   for (i = ctx->statesize-hashbytelen; i < ctx->statesize; i++,j++) {
@@ -545,7 +534,7 @@ HashReturn Hash(int hashbitlen,
   /* initialise */
   if ((ret = Init(&context, hashbitlen)) != SUCCESS)
     return ret;
-
+    
   /* process message */
   if ((ret = Update(&context, data, databitlen)) != SUCCESS)
     return ret;
@@ -585,9 +574,6 @@ void printHexArray(unsigned char *array, uint size) {
 
 int main(int argc, char **argv) {
     uint *ct, *pt;
-    uchar pt_debug[] = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xc, 0xe, 0xe };
-
-    pt = (uint*)pt_debug;
     ct = (uint*)malloc(8 * sizeof(uint)); // Allocating memory for 8 uints
 
     int dataSize; // Total data size
@@ -614,16 +600,15 @@ int main(int argc, char **argv) {
     fread(hostData, sizeof(unsigned char), dataSize, file);
     fclose(file);
 
-    const char* message = "my message";
-    size_t size = strlen(message);
+    // const char* message = "my message";
+    // size_t size = strlen(message);
 
-    unsigned char* data = (unsigned char*)malloc(size );
-    memcpy(data, message, size);
-    // data[size] = '\0';
+    // unsigned char* data = (unsigned char*)malloc(size );
+    // memcpy(data, message, size);
+    // crypto_hash(ct, data, size);
 
     printf("Data: %s\n", hostData);
     printf("Size: %zu\n", dataSize);
-    // crypto_hash(ct, data, size);
 
     crypto_hash(ct, hostData, dataSize);
     printHexArray(ct, 32);
