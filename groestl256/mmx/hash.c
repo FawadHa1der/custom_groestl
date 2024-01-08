@@ -523,7 +523,7 @@ int main(int argc, char **argv) {
     fread(hostData, sizeof(unsigned char), dataSize, file);
     fclose(file);
 
-    const char* message = "my message";
+    const char* message = "my message gdfjhghjkfdhgjklfdshgjklfdhgjkfdshkfjsdhgjfdlshgjkfdsghfjdklhgjfkdlghfjdkslhgfdjksgsdfhj    dsdscxcd3232322cc";
     size_t size = strlen(message);
 
     unsigned char* data = (unsigned char*)malloc(size );
