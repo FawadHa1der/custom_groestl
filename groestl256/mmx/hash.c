@@ -408,7 +408,7 @@ HashReturn Update(hashState* ctx,
   int msglen = (int)(databitlen/8);
   int rem = (int)(databitlen%8);
 
-  int post_message_index =   index + ((msglen-index)/ctx->statesize)*ctx->statesize;
+  int post_message_index =  index + ((msglen-index)/ctx->statesize)*ctx->statesize;
   /* store remaining data in buffer */
   while (post_message_index < msglen) {
     ctx->buffer[(int)ctx->buf_ptr++] = input[post_message_index++];
@@ -600,17 +600,17 @@ int main(int argc, char **argv) {
     fread(hostData, sizeof(unsigned char), dataSize, file);
     fclose(file);
 
-    // const char* message = "my message";
-    // size_t size = strlen(message);
+    const char* message = "my message";
+    size_t size = strlen(message);
 
-    // unsigned char* data = (unsigned char*)malloc(size );
-    // memcpy(data, message, size);
-    // crypto_hash(ct, data, size);
+    unsigned char* data = (unsigned char*)malloc(size );
+    memcpy(data, message, size);
+    crypto_hash(ct, data, size);
 
-    printf("Data: %s\n", hostData);
-    printf("Size: %zu\n", dataSize);
+    // printf("Data: %s\n", hostData);
+    // printf("Size: %zu\n", dataSize);
+    // crypto_hash(ct, hostData, dataSize);
 
-    crypto_hash(ct, hostData, dataSize);
     printHexArray(ct, 32);
     printf("done done\n");
     return 1;
