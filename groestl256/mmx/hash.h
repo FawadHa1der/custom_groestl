@@ -60,11 +60,11 @@ typedef unsigned char BitSequence;
 typedef unsigned long long DataLength;
 typedef enum { SUCCESS = 0, FAIL = 1, BAD_HASHLEN = 2 } HashReturn;
 typedef struct {
-  u32 *chaining;            /* actual state */
+  // u32 *chaining;            /* actual state */
   u64 block_counter;        /* message block counter */
   int hashbitlen;           /* output length in bits */
-  BitSequence *buffer;      /* data buffer */ // NOT BEING USED
-  int buf_ptr;              /* data buffer pointer */ // NOT BEING USED
+  // BitSequence *buffer;      /* data buffer */ // NOT BEING USED
+  // int buf_ptr;              /* data buffer pointer */ // NOT BEING USED
   // int bits_in_last_byte;    /* no. of message bits in last byte of
 	// 		       data buffer */
   int columns;              /* no. of columns in state */
@@ -72,8 +72,8 @@ typedef struct {
 } hashState;
 
 HashReturn Init(hashState*, int);
-HashReturn Update(hashState*, const BitSequence*, DataLength);
-HashReturn Final(hashState*, BitSequence*);
+HashReturn Update(hashState*, const BitSequence*, DataLength, u32*);
+HashReturn Final(hashState*, u32*  ,BitSequence*);
 HashReturn Hash(int, const BitSequence*, DataLength, BitSequence*);
 /* NIST API end   */
 

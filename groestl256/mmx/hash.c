@@ -18,6 +18,11 @@
 #include "tables.h"
 #include <string.h>
 #include <pthread.h>
+
+void OutputTransformation512(u32 *outputTransformation);
+
+
+
 /* compute a round of P512 */
 #define ROUNDP512(m_in, m, r) do {					\
     long long* T_m64 = (long long*)T;						\
@@ -184,7 +189,7 @@
 
 
 typedef struct {
-    hashState *ctx;        // Pointer to the hash state
+    // hashState *ctx;        // Pointer to the hash state
     const u8 *msg_block;   // Pointer to the current message block
     long long *resultBlock ;
     pthread_t thread_id;        // Thread ID
@@ -192,12 +197,12 @@ typedef struct {
 } ThreadArgs;
 
 
-ThreadArgs *setup_thread_args(ThreadArgs *args, hashState *ctx, const u8 *msg_block) {
+ThreadArgs *setup_thread_args(ThreadArgs *args,  const u8 *msg_block) {
     if (msg_block == NULL) {
         // Handle memory allocation failure
         printf('msg block nill');
     }
-    args->ctx = ctx;
+    // args->ctx = ctx;
     args->msg_block = msg_block;
     args-> resultBlock = malloc(COLS512 * sizeof(long long));
     return args;
@@ -233,8 +238,14 @@ void ProcessBlock(ThreadArgs* args) {
     // }
 }
 
+/* apply the output transformation after identifying variant */
+void OutputTransformation(u32 *output) {
+    OutputTransformation512(output);
+}
+
+
 /* digest part of a message in short variants */
-int Transform512(hashState *ctx, const u8 *msg, int msglen) {
+int Transform512(u32 *outputTransformation, const u8 *msg, int msglen) {
   int i;
   long long m64_m[COLS512], *m64_h, m64_hm[COLS512], tmp[COLS512];
   u64 *msg_64;
@@ -248,7 +259,7 @@ int Transform512(hashState *ctx, const u8 *msg, int msglen) {
 
   for (block_index = 0; block_index < num_blocks; block_index++) {
     // Arguments for ProcessBlock function
-    setup_thread_args(&threads_args[block_index], ctx, msg + (block_index * SIZE512));
+    setup_thread_args(&threads_args[block_index], msg + (block_index * SIZE512));
     pthread_create(&threads_args[block_index].thread_id, NULL, ProcessBlock, &threads_args[block_index]);
   }
 
@@ -258,9 +269,9 @@ int Transform512(hashState *ctx, const u8 *msg, int msglen) {
   }
 
   block_index = 0;
+  m64_h = (long long*)outputTransformation;
   while (msglen >= SIZE512) {
     msg_64 = (u64*)msg;
-    m64_h = (long long*)ctx->chaining;
 
     for (i = 0; i < COLS512; i++) {
       m64_m[i] = msg_64[i];
@@ -306,26 +317,21 @@ int Transform512(hashState *ctx, const u8 *msg, int msglen) {
     block_index++;
 
   }
-
+  OutputTransformation(outputTransformation);
   return 0;
 }
 
 
 /* digest part of a message after identifying variant */
-int Transform(hashState *ctx, const u8 *msg, int msglen) {
-  if (ctx->hashbitlen <= 256) {
-    return Transform512(ctx, msg, msglen);
-  }
-  else {
-    // return Transform1024(ctx, msg, msglen);
-  }
+int Transform(u32 *outputTransformation, const u8 *msg, int msglen) {
+    return Transform512(outputTransformation, msg, msglen);
 }
 
 /* apply the output transformation of short variants */
-void OutputTransformation512(hashState *ctx) {
+void OutputTransformation512(u32 *outputTransformation) {
   int i;
   long long *m64_h, tmp1[COLS512], tmp2[COLS512];
-  m64_h = (long long*)ctx->chaining;
+  m64_h = (long long*)outputTransformation;
 
   for (i = 0; i < COLS512; i++) {
     tmp1[i] = m64_h[i];
@@ -345,20 +351,9 @@ void OutputTransformation512(hashState *ctx) {
   for (i = 0; i < COLS512; i++) {
     m64_h[i] = m64_h[i] ^ tmp1[i];
   }
-
-  //_mm_empty();
 }
 
 
-/* apply the output transformation after identifying variant */
-void OutputTransformation(hashState *ctx) {
-  if (ctx->hashbitlen <= 256) {
-    OutputTransformation512(ctx);
-  }
-  else {
-    // OutputTransformation1024(ctx);
-  }
-}
 
 /* initialise context */
 HashReturn Init(hashState* ctx,
@@ -379,18 +374,10 @@ HashReturn Init(hashState* ctx,
     // ctx->statesize = SIZE1024;
   }
 
-  /* allocate memory for state and data buffer */
-  ctx->chaining = calloc(ctx->statesize,1);
-  ctx->buffer = malloc(ctx->statesize);
-  if (ctx->chaining == NULL || ctx->buffer == NULL)
-    return FAIL;
 
-  /* set initial value */
-  ctx->chaining[2*ctx->columns-1] = U32BIG((u32)hashbitlen);
 
   /* set other variables */
   ctx->hashbitlen = hashbitlen;
-  ctx->buf_ptr = 0;
   ctx->block_counter = 0;
 
   return SUCCESS;
@@ -399,7 +386,7 @@ HashReturn Init(hashState* ctx,
 /* update state with databitlen bits of input */
 HashReturn Update(hashState* ctx,
 		  const BitSequence* input,
-		  DataLength databitlen) {
+		  DataLength databitlen, u32* transformedOutput) {
   int index = 0;
   const int msglen = (int)(databitlen/8);
   int newMsgLen = msglen;
@@ -443,19 +430,17 @@ HashReturn Update(hashState* ctx,
     ctx->block_counter >>= 8;
   }
 
-  Transform(ctx, input, newMsgLen);
-  OutputTransformation(ctx);
-  
+  Transform(transformedOutput, input, newMsgLen);
   return SUCCESS;
 }
 
 
 /* finalise: process remaining data (including padding), perform
    output transformation, and write hash result to 'output' */
-HashReturn Final(hashState* ctx,
+HashReturn Final(hashState* ctx, u32* input,
 		 BitSequence* output) {
   int i, j = 0, hashbytelen = ctx->hashbitlen/8;
-  u8 *s = (BitSequence*)ctx->chaining;
+  u8 *s = input;
 
   /* store hash result in output */
   for (i = ctx->statesize-hashbytelen; i < ctx->statesize; i++,j++) {
@@ -464,14 +449,11 @@ HashReturn Final(hashState* ctx,
 
   /* zeroise relevant variables and deallocate memory */
   for (i = 0; i < ctx->columns; i++) {
-    ctx->chaining[i] = 0;
+    input[i] = 0;
   }
-  for (i = 0; i < ctx->statesize; i++) {
-    ctx->buffer[i] = 0;
-  }
-  free(ctx->chaining);
-  free(ctx->buffer);
-
+  // free(ctx->chaining);
+  // free(ctx->buffer);
+  /// TODO: free input var somewhere
   return SUCCESS;
 }
 
@@ -487,12 +469,19 @@ HashReturn Hash(int hashbitlen,
   if ((ret = Init(&context, hashbitlen)) != SUCCESS)
     return ret;
     
+  u32* transformedOutput = calloc(context.statesize,1);
+  /* allocate memory for state and data buffer */
+  transformedOutput[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
+
   /* process message */
-  if ((ret = Update(&context, data, databitlen)) != SUCCESS)
+  if ((ret = Update(&context, data, databitlen, transformedOutput)) != SUCCESS)
     return ret;
 
   /* finalise */
-  ret = Final(&context, hashval);
+  ret = Final(&context, transformedOutput, hashval);
+
+
+  free(transformedOutput);
 
   return ret;
 }
