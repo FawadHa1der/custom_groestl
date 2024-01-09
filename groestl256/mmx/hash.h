@@ -63,8 +63,8 @@ typedef struct {
   u32 *chaining;            /* actual state */
   u64 block_counter;        /* message block counter */
   int hashbitlen;           /* output length in bits */
-  BitSequence *buffer;      /* data buffer */
-  int buf_ptr;              /* data buffer pointer */
+  BitSequence *buffer;      /* data buffer */ // NOT BEING USED
+  int buf_ptr;              /* data buffer pointer */ // NOT BEING USED
   // int bits_in_last_byte;    /* no. of message bits in last byte of
 	// 		       data buffer */
   int columns;              /* no. of columns in state */

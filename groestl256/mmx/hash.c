@@ -243,6 +243,7 @@ int Transform512(hashState *ctx, const u8 *msg, int msglen) {
   int num_blocks = msglen / SIZE512;
   //  pthread_t threads[num_blocks];
   ThreadArgs threads_args[num_blocks];
+
   int block_index = 0;
 
   for (block_index = 0; block_index < num_blocks; block_index++) {
@@ -299,10 +300,6 @@ int Transform512(hashState *ctx, const u8 *msg, int msglen) {
       m64_h[i] = m64_h[i] ^ threads_args[block_index].resultBlock[i];
       m64_h[i] = m64_h[i] ^ m64_hm[i];
     }
-
-    //_mm_empty();
-
-    ctx->block_counter++;
 
     msg += SIZE512;
     msglen -= SIZE512;    
@@ -410,10 +407,6 @@ HashReturn Update(hashState* ctx,
   uchar* byteInput = input;
 
   ctx->block_counter = msglen / ctx->statesize;
- 
-
-  int post_message_index =  index + ((msglen-index)/ctx->statesize)*ctx->statesize;
-
   byteInput[newMsgLen] = 0x80;
   newMsgLen++;
 
@@ -423,11 +416,13 @@ HashReturn Update(hashState* ctx,
   if (remainderIndex > ctx->statesize - LENGTHFIELDLEN) {
     // extra buffer
     while (remainderIndex < ctx->statesize) {
-      byteInput[newMsgLen + remainderIndex] = 0;
+      byteInput[newMsgLen] = 0;
       remainderIndex++;
+      newMsgLen++;
     }
-    newMsgLen = newMsgLen + (ctx->statesize - remainder);
+    // newMsgLen = newMsgLen + (ctx->statesize - remainder);
     remainderIndex = 0;
+    ctx->block_counter++;
   }
 
   while (remainderIndex < ctx->statesize-LENGTHFIELDLEN) {
@@ -437,85 +432,23 @@ HashReturn Update(hashState* ctx,
   }
   ctx->block_counter++;
 
-  byteInput[newMsgLen + (remainderIndex -1 )] = (u8)ctx->block_counter;
+  // byteInput[newMsgLen + (remainderIndex -1 )] = (u8)ctx->block_counter;
   newMsgLen += LENGTHFIELDLEN;
+
+  int lengthPad = LENGTHFIELDLEN;
+  int lengthPadIndex = 1;
+  while (lengthPadIndex <= LENGTHFIELDLEN) {
+    byteInput[newMsgLen - lengthPadIndex] = (u8)ctx->block_counter;
+    lengthPadIndex++;
+    ctx->block_counter >>= 8;
+  }
 
   Transform(ctx, input, newMsgLen);
   OutputTransformation(ctx);
   
   return SUCCESS;
-
-  // while (post_message_index < msglen) {
-  //   byteInput[msglen + (int)ctx->buf_ptr++] = input[post_message_index++];
-  //   // ctx->buffer[(int)ctx->buf_ptr++] = input[post_message_index++];
-  // }
-
-
-  /* non-integral number of message bytes can only be supplied in the
-     last call to this function */
-  //if (ctx->bits_in_last_byte) return FAIL;
-
-  /* if the buffer contains data that has not yet been digested, first
-     add data to buffer until full */
-  // if (ctx->buf_ptr) {
-  //   while (ctx->buf_ptr < ctx->statesize && index < msglen) {
-  //     ctx->buffer[(int)ctx->buf_ptr++] = input[index++];
-  //   }
-  //   if (ctx->buf_ptr < ctx->statesize) {
-  //     /* buffer still not full, return */
-  //     if (rem) {
-  //       ctx->bits_in_last_byte = rem;
-  //       ctx->buffer[(int)ctx->buf_ptr++] = input[index];
-  //     }
-  //     return SUCCESS;
-  //   }
-
-  //   /* digest buffer */
-  //   ctx->buf_ptr = 0;
-  //   Transform(ctx, ctx->buffer, ctx->statesize);
-  // }
-
-  /* digest bulk of message */
-
-  Transform(ctx, input+index, msglen-index);
-  // index += ((msglen-index)/ctx->statesize)*ctx->statesize;
-
-/////////////////////////////////////////////////////////////////////////////MODIFIED, finalyze brought in here///////////////////////////////////
- 
-
-  /* pad with '0'-bits */
-  if (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN) {
-    /* padding requires two blocks */
-    while (ctx->buf_ptr < ctx->statesize) {
-      byteInput[msglen +(int)ctx->buf_ptr++] = 0;
-    }
-    /* digest first padding block */
-    // Transform(ctx, ctx->buffer, ctx->statesize);
-    Transform(ctx, &byteInput[msglen], ctx->statesize);
-    ctx->buf_ptr = 0;
-  }
-
-  while (ctx->buf_ptr < ctx->statesize-LENGTHFIELDLEN) {
-    byteInput[msglen + (int)ctx->buf_ptr++] = 0;
-  }
-
-  /* length padding */
-  ctx->block_counter++;
-  ctx->buf_ptr = ctx->statesize;
-  while (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN) {
-    byteInput[msglen + (int)--ctx->buf_ptr] = (u8)ctx->block_counter;
-    ctx->block_counter >>= 8;
-  }
-
-  /* digest final padding block */
-  Transform(ctx, &byteInput[msglen], ctx->statesize);
-  /* perform output transformation */
-  OutputTransformation(ctx);
-  
-  return SUCCESS;
 }
 
-#define BILB ctx->bits_in_last_byte
 
 /* finalise: process remaining data (including padding), perform
    output transformation, and write hash result to 'output' */
