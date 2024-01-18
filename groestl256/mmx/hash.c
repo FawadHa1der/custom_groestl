@@ -25,7 +25,7 @@ void OutputTransformation512(u32 *outputTransformation);
 
 /* compute a round of P512 */
 #define ROUNDP512(m_in, m, r) do {					\
-    long long* T_m64 = (long long*)T;						\
+    u64* T_m64 = (u64*)T;						\
     long long zero;								\
     u32* x = (u32*)m_in;						\
     zero = 0;						\
@@ -97,7 +97,7 @@ void OutputTransformation512(u32 *outputTransformation);
 
 /* compute a round of Q512 */
 #define ROUNDQ512(m_in, m, r) do {					\
-    long long* T_m64 = (long long*)T;						\
+    u64* T_m64 = (u64*)T;						\
     long long zero;								\
     long long ff;								\
     u32* x = (u32*)m_in;						\
@@ -269,7 +269,7 @@ int Transform512(u32 *outputTransformation, const u8 *msg, int msglen) {
   }
 
   block_index = 0;
-  m64_h = (long long*)outputTransformation;
+  m64_h = (u64*)outputTransformation;
   while (msglen >= SIZE512) {
     msg_64 = (u64*)msg;
 
@@ -331,7 +331,7 @@ int Transform(u32 *outputTransformation, const u8 *msg, int msglen) {
 void OutputTransformation512(u32 *outputTransformation) {
   int i;
   long long *m64_h, tmp1[COLS512], tmp2[COLS512];
-  m64_h = (long long*)outputTransformation;
+  m64_h = (u64*)outputTransformation;
 
   for (i = 0; i < COLS512; i++) {
     tmp1[i] = m64_h[i];
@@ -353,8 +353,6 @@ void OutputTransformation512(u32 *outputTransformation) {
   }
 }
 
-
-
 /* initialise context */
 HashReturn Init(hashState* ctx,
 		int hashbitlen) {
@@ -373,8 +371,6 @@ HashReturn Init(hashState* ctx,
     // ctx->columns = COLS1024;
     // ctx->statesize = SIZE1024;
   }
-
-
 
   /* set other variables */
   ctx->hashbitlen = hashbitlen;
@@ -453,7 +449,6 @@ HashReturn Final(hashState* ctx, u32* input,
   }
   // free(ctx->chaining);
   // free(ctx->buffer);
-  /// TODO: free input var somewhere
   return SUCCESS;
 }
 
@@ -544,13 +539,13 @@ int main(int argc, char **argv) {
     const char* message = "my message gdfjhghjkfdhgjklfdshgjklfdhgjkfdshkfjsdhgjfdlshgjkfdsghfjdklhgjfkdlghfjdkslhgfdjksgsdfhj    dsdscxcd3232322cc";
     size_t size = strlen(message);
 
-    unsigned char* data = (unsigned char*)malloc(size + (SIZE512 * 2));
-    memcpy(data, message, size);
-    crypto_hash(ct, data, size);
+    // unsigned char* data = (unsigned char*)malloc(size + (SIZE512 * 2));
+    // memcpy(data, message, size);
+    // crypto_hash(ct, data, size);
 
-    // printf("Data: %s\n", hostData);
-    // printf("Size: %zu\n", dataSize);
-    // crypto_hash(ct, hostData, dataSize);
+    printf("Data: %s\n", hostData);
+    printf("Size: %zu\n", dataSize);
+    crypto_hash(ct, hostData, dataSize);
 
     printHexArray(ct, 32);
     printf("done done\n");
