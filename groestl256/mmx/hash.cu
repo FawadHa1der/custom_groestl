@@ -15,6 +15,7 @@
  * This code is placed in the public domain
  */
 #define __MMX__ 81
+#define CUDAFIED 80
 #if defined(__MMX__)
 #include <stdio.h>
 #include <stdlib.h>
@@ -124,7 +125,7 @@ __device__ void ROUNDP512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     break;
   }
 
-  __syncthreads();
+  // __syncthreads();
   switch (local_message_block_index_32)
   {
   case 5:
@@ -153,7 +154,7 @@ __device__ void ROUNDP512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     break;
   }
 
-  __syncthreads();
+  // __syncthreads();
   switch (local_message_block_index_32)
   {
   case 5:
@@ -182,7 +183,7 @@ __device__ void ROUNDP512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     break;
   }
 
-  __syncthreads();
+  // __syncthreads();
   switch (local_message_block_index_32)
   {
   case 5:
@@ -211,7 +212,7 @@ __device__ void ROUNDP512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     break;
   }
 
-  __syncthreads();
+ // __syncthreads();
   switch (local_message_block_index_32)
   {
   case 5:
@@ -240,7 +241,7 @@ __device__ void ROUNDP512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     break;
   }
 
-  __syncthreads();
+  // __syncthreads();
   switch (local_message_block_index_32)
   {
   case 5:
@@ -269,7 +270,7 @@ __device__ void ROUNDP512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     break;
   }
 
-  __syncthreads();
+  // __syncthreads();
   switch (local_message_block_index_32)
   {
   case 5:
@@ -298,7 +299,7 @@ __device__ void ROUNDP512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     break;
   }
 
-  __syncthreads();
+ // __syncthreads();
 }
 
 __device__ void ROUNDQ512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_message_index_64)
@@ -350,7 +351,7 @@ __device__ void ROUNDQ512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     break;
   }
 
-  __syncthreads();
+  // __syncthreads();
 
   switch (local_message_block_index_32)
   {
@@ -387,7 +388,7 @@ __device__ void ROUNDQ512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     break;
   }
 
-  __syncthreads();
+  // __syncthreads();
 
   switch (local_message_block_index_32)
   {
@@ -416,7 +417,7 @@ __device__ void ROUNDQ512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     m[shared_message_index_64] = T_m64[7 * 256 + ((r) ^ 0x60 ^ EXT_BYTE(x[13], 3))] ^ m[shared_message_index_64];
     break;
   }
-  __syncthreads();
+  // __syncthreads();
 
   switch (local_message_block_index_32)
   {
@@ -446,7 +447,7 @@ __device__ void ROUNDQ512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     break;
   }
 
-  __syncthreads();
+  // __syncthreads();
 
   switch (local_message_block_index_32)
   {
@@ -476,7 +477,7 @@ __device__ void ROUNDQ512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     break;
   }
 
-  __syncthreads();
+  // __syncthreads();
 
   switch (local_message_block_index_32)
   {
@@ -506,7 +507,7 @@ __device__ void ROUNDQ512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     break;
   }
 
-  __syncthreads();
+  // __syncthreads();
 
   switch (local_message_block_index_32)
   {
@@ -536,7 +537,7 @@ __device__ void ROUNDQ512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     break;
   }
 
-  __syncthreads();
+  // __syncthreads();
 
   switch (local_message_block_index_32)
   {
@@ -566,7 +567,7 @@ __device__ void ROUNDQ512(u64 *m_in, u64 *m, int r, u64 *T_shared, int shared_me
     break;
   }
 
-  __syncthreads();
+  // __syncthreads();
 }
 
 #define TABLE_SIZE 2048
@@ -577,46 +578,46 @@ __global__ void Transform512(u32 *outputTransformation, int outputTransformSize,
 {
 
   int i;
+
+  //TODO some of these shared mem vars can be re-used and redced 
   __shared__ u64 m64_m[COLS512];
   __shared__ u64 *m64_h;
   __shared__ u64 m64_hm[COLS512];
   __shared__ u64 tmp[COLS512];
   __shared__ u64 tmp_output[COLS512];
   __shared__ u64 output_transformation_shared[COLS512];
+  __shared__ u64 T_shared[TABLE_SIZE];
+  __shared__ u64 q_shared_results_64[SHARED_Q_RESULTS_SIZE];
+  __shared__ u64 tmp_shared_64[SHARED_Q_RESULTS_SIZE];
 
-  if (blockDim.x > SHARED_Q_RESULTS_SIZE)
+  int threadsPerBlock = blockDim.x;
+
+  if (threadsPerBlock > SHARED_Q_RESULTS_SIZE)
   {
     printf("we have an error, block dimensions cannot be bigger than shared q results size  ");
     return;
   }
 
-  int threadsPerBlock = blockDim.x;
   int totalLoads = TABLE_SIZE / threadsPerBlock; // Each thread loads this many 64 bit values
-
   int sharedMemoryLoadIndex = threadIdx.x * totalLoads;
   int end = sharedMemoryLoadIndex + totalLoads;
 
-  __shared__ u64 T_shared[TABLE_SIZE];
   // Load data into shared memory
   for (int runningLoadIndex = sharedMemoryLoadIndex; runningLoadIndex < end; ++runningLoadIndex)
   {
     // sharedData[runningLoadIndex] = globalData[runningLoadIndex];
     if (runningLoadIndex < TABLE_SIZE)
     { // Ensure we don't go out of bounds of shared memory
-      // printf("runningLoadIndex:%d\n", runningLoadIndex);
       T_shared[runningLoadIndex] = T[runningLoadIndex];
     }
   }
 
-  // Synchronize to ensure all data is loaded
-  __syncthreads();
+ // Synchronize to ensure all data is loaded
+ // __syncthreads();
 
   int grid_stride_local_index = blockIdx.x * blockDim.x + threadIdx.x;
   int stride = blockDim.x * gridDim.x;
   u64 *msg_64 = (u64 *)msg;
-
-  __shared__ u64 q_shared_results_64[SHARED_Q_RESULTS_SIZE];
-  __shared__ u64 tmp_shared_64[SHARED_Q_RESULTS_SIZE];
 
   u64 *transformation_buffer_q_64 = (u64 *)msg_transformation_buffer;
   int msglen_64 = msglen / COLS512; // length of char* data type to  u64* type
@@ -639,18 +640,18 @@ __global__ void Transform512(u32 *outputTransformation, int outputTransformSize,
       ROUNDQ512(q_shared_results_64, tmp_shared_64, 8, (u64 *)T_shared, q_local_index_shared_64);
       ROUNDQ512(tmp_shared_64, q_shared_results_64, 9, (u64 *)T_shared, q_local_index_shared_64);
 
-      __syncthreads();
+      // __syncthreads();
       transformation_buffer_q_64[global_index_64] = q_shared_results_64[q_local_index_shared_64];
     }
   }
 
-  int tid = threadIdx.x;
-  if ((blockIdx.x == 0) && (tid < 8))
+  
+  // Processing P blocks and thread coarsening to 8 threads. P is not very parallelizable 
+  if ((blockIdx.x == 0) && (threadIdx.x < 8))
   {
+    int tid = threadIdx.x;
     m64_h = (u64 *)outputTransformation;
-
     output_transformation_shared[tid] = m64_h[tid];
-    // printf(" value %llu index %d \n",output_transformation_shared[tid], tid);
     u64 *current_q_transformed_block = transformation_buffer_q_64;
 
     int tmpIndex = 0;
@@ -658,7 +659,6 @@ __global__ void Transform512(u32 *outputTransformation, int outputTransformSize,
     while (msglen >= SIZE512)
     {
       msg_64 = (u64 *)msg;
-
       m64_hm[tid] = output_transformation_shared[tid] ^ msg_64[tid];
 
       ROUNDP512(m64_hm, tmp, 0, T_shared, tid);
@@ -681,7 +681,7 @@ __global__ void Transform512(u32 *outputTransformation, int outputTransformSize,
       tmpIndex++;
     }
 
-    __syncthreads();
+//    __syncthreads();
 
     tmp[tid] = output_transformation_shared[tid];
 
@@ -716,8 +716,8 @@ int Transform(u32 *outputTransformation, int outputTransformSize, const u8 *msg,
   struct cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
 
-  dim3 dimBlock(128, 1, 1); // should always be a multiple of 8 so that we can process 8 64bit elements message blocks within cuda blocks. Cannot be greater than 512
-  dim3 dimGrid(256, 1, 1);
+  dim3 dimBlock(32, 1, 1); // should always be a multiple of 8 so that we can process 8 64bit elements message blocks within cuda blocks. Cannot be greater than 512
+  dim3 dimGrid(32, 1, 1);
 
   getLastCudaError();
 
@@ -924,7 +924,7 @@ int main(int argc, char **argv)
 
   int dataSize; // Total data size
   size_t maxSharedMemory;
-  FILE *file = fopen("groestl256.blb", "r");
+  FILE *file = fopen("text_generator/pt_1MB.txt", "r");
 
   if (file == NULL)
   {

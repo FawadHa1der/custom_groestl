@@ -525,7 +525,7 @@ int main(int argc, char **argv) {
 
     int dataSize; // Total data size
     size_t maxSharedMemory;
-    FILE *file = fopen("groestl256.blb", "r");
+    FILE *file = fopen("text_generator/pt_1MB.txt", "r");
 
     if (file == NULL) {
       printf("Error opening the file.\n");
@@ -550,13 +550,13 @@ int main(int argc, char **argv) {
     const char* message = "my message gdfjhghjkfdhgjklfdshgjklfdhgjkfdshkfjsdhgjfdlshgjkfdsghfjdklhgjfkdlghfjdkslhgfdjksgsdfhj    dsdscxcd3232322cc";
     size_t size = strlen(message);
 
-    unsigned char* data = (unsigned char*)malloc(size + (SIZE512 * 2));
-    memcpy(data, message, size);
-    crypto_hash(ct, data, size);
+    // unsigned char* data = (unsigned char*)malloc(size + (SIZE512 * 2));
+    // memcpy(data, message, size);
+    // crypto_hash(ct, data, size);
 
-    // printf("Data: %s\n", hostData);
-    // printf("Size: %zu\n", dataSize);
-    // crypto_hash(ct, hostData, dataSize);
+    printf("Data: %s\n", hostData);
+    printf("Size: %zu\n", dataSize);
+    crypto_hash(ct, hostData, dataSize);
 
     printHexArray(ct, 32);
     printf("done done\n");

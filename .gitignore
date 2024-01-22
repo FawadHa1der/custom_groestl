@@ -1,0 +1,49 @@
+
+.DS_Store
+# Compiled object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Compiled dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Executables
+*.exe
+*.out
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Dependency files
+*.d
+
+# Libraries
+*.lib
+*.a
+
+# Generated files
+Makefile
+CMakeLists.txt.user
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+
+# IDE specific files
+.vscode/
+.idea/
+*.suo
+*.user
+*.sln
+*.vcxproj
+*.xcodeproj
+*.xcworkspace
+
+# Build output directories
+bin/
+build/
+out/
