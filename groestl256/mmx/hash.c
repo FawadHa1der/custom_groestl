@@ -17,9 +17,15 @@
 #include "hash.h"
 #include "tables.h"
 #include <string.h>
+#include <pthread.h>
+
+void OutputTransformation512(u32 *outputTransformation);
+
+
+
 /* compute a round of P512 */
 #define ROUNDP512(m_in, m, r) do {					\
-    long long* T_m64 = (long long*)T;						\
+    u64* T_m64 = (u64*)T;						\
     long long zero;								\
     u32* x = (u32*)m_in;						\
     zero = 0;						\
@@ -91,7 +97,7 @@
 
 /* compute a round of Q512 */
 #define ROUNDQ512(m_in, m, r) do {					\
-    long long* T_m64 = (long long*)T;						\
+    u64* T_m64 = (u64*)T;						\
     long long zero;								\
     long long ff;								\
     u32* x = (u32*)m_in;						\
@@ -181,27 +187,103 @@
   } while (0)
 
 
+
+typedef struct {
+    // hashState *ctx;        // Pointer to the hash state
+    const u8 *msg_block;   // Pointer to the current message block
+    long long *resultBlock ;
+    pthread_t thread_id;        // Thread ID
+    int block_index;
+    // ... any other arguments needed for processing ...
+} ThreadArgs;
+
+
+ThreadArgs *setup_thread_args(ThreadArgs *args,  const u8 *msg_block, int block_index) {
+    if (msg_block == NULL) {
+        // Handle memory allocation failure
+        printf('msg block nill');
+    }
+    // args->ctx = ctx;
+    args->msg_block = msg_block;
+    args-> resultBlock = malloc(COLS512 * sizeof(long long));
+    args->block_index = block_index;
+    return args;
+}
+
+
+void ProcessBlock(ThreadArgs* args) {
+    long long *m64_m = args->resultBlock, tmp[COLS512];
+    u64 *msg_64 = (u64*)args->msg_block;
+
+    for (int i = 0; i < COLS512; i++) {
+      m64_m[i] = msg_64[i];
+      // m64_hm[i] = m64_h[i] ^ m64_m[i];
+    }
+
+    // Perform the ROUNDQ512 operations
+    ROUNDQ512(m64_m, tmp, 0);
+
+    ROUNDQ512(tmp, m64_m, 1);
+    ROUNDQ512(m64_m, tmp, 2);
+   ROUNDQ512(tmp, m64_m, 3);
+    ROUNDQ512(m64_m, tmp, 4);
+    ROUNDQ512(tmp, m64_m, 5);
+    ROUNDQ512(m64_m, tmp, 6);
+    ROUNDQ512(tmp, m64_m, 7);
+    ROUNDQ512(m64_m, tmp, 8);
+    ROUNDQ512(tmp, m64_m, 9);
+
+    //  for (int i = 0; i < COLS512; i++) {
+    //   printf("  %d %lld %d, ", args->block_index , m64_m[i], i);
+    // }
+    // printf("\n");
+
+
+    // ... and so on for the rest of the ROUNDQ512 calls ...
+
+    // // Final combination steps (similar to the end of the while loop in Transform512)
+    // for (int i = 0; i < COLS512; i++) {
+    //     // ... Same combination steps as in Transform512 ...
+    // }
+}
+
+/* apply the output transformation after identifying variant */
+void OutputTransformation(u32 *output) {
+    OutputTransformation512(output);
+}
+
+
 /* digest part of a message in short variants */
-int Transform512(hashState *ctx, const u8 *msg, int msglen) {
+int Transform512(u32 *outputTransformation, const u8 *msg, int msglen) {
   int i;
   long long m64_m[COLS512], *m64_h, m64_hm[COLS512], tmp[COLS512];
-  u32 *msg_32;
+  u64 *msg_64;
 
-  //_mm_empty();
+  // Determine the number of blocks
+  int num_blocks = msglen / SIZE512;
+  //  pthread_t threads[num_blocks];
+  ThreadArgs threads_args[num_blocks];
 
+  int block_index = 0;
+
+  for (block_index = 0; block_index < num_blocks; block_index++) {
+    // Arguments for ProcessBlock function
+    setup_thread_args(&threads_args[block_index], msg + (block_index * SIZE512), block_index);
+    pthread_create(&threads_args[block_index].thread_id, NULL, ProcessBlock, &threads_args[block_index]);
+  }
+
+  // Wait for all threads to complete
+  for (block_index = 0;block_index < num_blocks; block_index++) {
+    pthread_join(threads_args[block_index].thread_id, NULL);
+  }
+
+  block_index = 0;
+  m64_h = (u64*)outputTransformation;
   while (msglen >= SIZE512) {
-    msg_32 = (u32*)msg;
-    m64_h = (long long*)ctx->chaining;
+    msg_64 = (u64*)msg;
 
     for (i = 0; i < COLS512; i++) {
-      union {
-        u32 msg_32[2];
-        long long m64;
-      } u;
-
-      u.msg_32[0] = msg_32[2*i];
-      u.msg_32[1] = msg_32[2*i+1];
-      m64_m[i] = u.m64;
+      m64_m[i] = msg_64[i];
       m64_hm[i] = m64_h[i] ^ m64_m[i];
     }
 
@@ -215,50 +297,52 @@ int Transform512(hashState *ctx, const u8 *msg, int msglen) {
     ROUNDP512(tmp, m64_hm, 7);
     ROUNDP512(m64_hm, tmp, 8);
     ROUNDP512(tmp, m64_hm, 9);
-
-    ROUNDQ512(m64_m, tmp, 0);
-    ROUNDQ512(tmp, m64_m, 1);
-    ROUNDQ512(m64_m, tmp, 2);
-    ROUNDQ512(tmp, m64_m, 3);
-    ROUNDQ512(m64_m, tmp, 4);
-    ROUNDQ512(tmp, m64_m, 5);
-    ROUNDQ512(m64_m, tmp, 6);
-    ROUNDQ512(tmp, m64_m, 7);
-    ROUNDQ512(m64_m, tmp, 8);
-    ROUNDQ512(tmp, m64_m, 9);
     
+
+    // ROUNDQ512(m64_m, tmp, 0);
+    // ROUNDQ512(tmp, m64_m, 1);
+    // ROUNDQ512(m64_m, tmp, 2);
+    // ROUNDQ512(tmp, m64_m, 3);
+    // ROUNDQ512(m64_m, tmp, 4);
+    // ROUNDQ512(tmp, m64_m, 5);
+    // ROUNDQ512(m64_m, tmp, 6);
+    // ROUNDQ512(tmp, m64_m, 7);
+    // ROUNDQ512(m64_m, tmp, 8);
+    // ROUNDQ512(tmp, m64_m, 9);
+
+    // m64_m = threads_args[block_index].resultBlock;
+    
+    // for (i = 0; i < COLS512; i++) {
+    //   m64_h[i] = m64_h[i] ^ m64_m [i];
+    //   m64_h[i] = m64_h[i] ^ m64_hm[i];
+    // }
     for (i = 0; i < COLS512; i++) {
-      m64_h[i] = m64_h[i] ^ m64_m [i];
+      m64_h[i] = m64_h[i] ^ threads_args[block_index].resultBlock[i];
       m64_h[i] = m64_h[i] ^ m64_hm[i];
+      printf( " m64_m[tid] %lld i %d, \n ", threads_args[block_index].resultBlock[i], i);
+
     }
 
-    //_mm_empty();
-
-    ctx->block_counter++;
-
     msg += SIZE512;
-    msglen -= SIZE512;
-  }
+    msglen -= SIZE512;    
+    block_index++;
 
+  }
+  OutputTransformation(outputTransformation);
   return 0;
 }
 
 
 /* digest part of a message after identifying variant */
-int Transform(hashState *ctx, const u8 *msg, int msglen) {
-  if (ctx->hashbitlen <= 256) {
-    return Transform512(ctx, msg, msglen);
-  }
-  else {
-    // return Transform1024(ctx, msg, msglen);
-  }
+int Transform(u32 *outputTransformation, const u8 *msg, int msglen) {
+    return Transform512(outputTransformation, msg, msglen);
 }
 
 /* apply the output transformation of short variants */
-void OutputTransformation512(hashState *ctx) {
+void OutputTransformation512(u32 *outputTransformation) {
   int i;
   long long *m64_h, tmp1[COLS512], tmp2[COLS512];
-  m64_h = (long long*)ctx->chaining;
+  m64_h = (u64*)outputTransformation;
 
   for (i = 0; i < COLS512; i++) {
     tmp1[i] = m64_h[i];
@@ -277,19 +361,6 @@ void OutputTransformation512(hashState *ctx) {
 
   for (i = 0; i < COLS512; i++) {
     m64_h[i] = m64_h[i] ^ tmp1[i];
-  }
-
-  //_mm_empty();
-}
-
-
-/* apply the output transformation after identifying variant */
-void OutputTransformation(hashState *ctx) {
-  if (ctx->hashbitlen <= 256) {
-    OutputTransformation512(ctx);
-  }
-  else {
-    // OutputTransformation1024(ctx);
   }
 }
 
@@ -312,20 +383,9 @@ HashReturn Init(hashState* ctx,
     // ctx->statesize = SIZE1024;
   }
 
-  /* allocate memory for state and data buffer */
-  ctx->chaining = calloc(ctx->statesize,1);
-  ctx->buffer = malloc(ctx->statesize);
-  if (ctx->chaining == NULL || ctx->buffer == NULL)
-    return FAIL;
-
-  /* set initial value */
-  ctx->chaining[2*ctx->columns-1] = U32BIG((u32)hashbitlen);
-
   /* set other variables */
   ctx->hashbitlen = hashbitlen;
-  ctx->buf_ptr = 0;
   ctx->block_counter = 0;
-  ctx->bits_in_last_byte = 0;
 
   return SUCCESS;
 }
@@ -333,97 +393,61 @@ HashReturn Init(hashState* ctx,
 /* update state with databitlen bits of input */
 HashReturn Update(hashState* ctx,
 		  const BitSequence* input,
-		  DataLength databitlen) {
+		  DataLength databitlen, u32* transformedOutput) {
   int index = 0;
-  int msglen = (int)(databitlen/8);
+  const int msglen = (int)(databitlen/8);
+  int newMsgLen = msglen;
   int rem = (int)(databitlen%8);
+  uchar* byteInput = input;
 
-  /* non-integral number of message bytes can only be supplied in the
-     last call to this function */
-  if (ctx->bits_in_last_byte) return FAIL;
+  ctx->block_counter = msglen / ctx->statesize;
+  byteInput[newMsgLen] = 0x80;
+  newMsgLen++;
 
-  /* if the buffer contains data that has not yet been digested, first
-     add data to buffer until full */
-  if (ctx->buf_ptr) {
-    while (ctx->buf_ptr < ctx->statesize && index < msglen) {
-      ctx->buffer[(int)ctx->buf_ptr++] = input[index++];
-    }
-    if (ctx->buf_ptr < ctx->statesize) {
-      /* buffer still not full, return */
-      if (rem) {
-	ctx->bits_in_last_byte = rem;
-	ctx->buffer[(int)ctx->buf_ptr++] = input[index];
-      }
-      return SUCCESS;
-    }
-
-    /* digest buffer */
-    ctx->buf_ptr = 0;
-    Transform(ctx, ctx->buffer, ctx->statesize);
-  }
-
-  /* digest bulk of message */
-  Transform(ctx, input+index, msglen-index);
-  index += ((msglen-index)/ctx->statesize)*ctx->statesize;
-
+  const int remainder = (newMsgLen)%ctx->statesize;
+  int remainderIndex = remainder;
   /* store remaining data in buffer */
-  while (index < msglen) {
-    ctx->buffer[(int)ctx->buf_ptr++] = input[index++];
-  }
-
-  /* if non-integral number of bytes have been supplied, store
-     remaining bits in last byte, together with information about
-     number of bits */
-  if (rem) {
-    ctx->bits_in_last_byte = rem;
-    ctx->buffer[(int)ctx->buf_ptr++] = input[index];
-  }
-  return SUCCESS;
-}
-
-#define BILB ctx->bits_in_last_byte
-
-/* finalise: process remaining data (including padding), perform
-   output transformation, and write hash result to 'output' */
-HashReturn Final(hashState* ctx,
-		 BitSequence* output) {
-  int i, j = 0, hashbytelen = ctx->hashbitlen/8;
-  u8 *s = (BitSequence*)ctx->chaining;
-
-  /* pad with '1'-bit and first few '0'-bits */
-  if (BILB) {
-    ctx->buffer[(int)ctx->buf_ptr-1] &= ((1<<BILB)-1)<<(8-BILB);
-    ctx->buffer[(int)ctx->buf_ptr-1] ^= 0x1<<(7-BILB);
-    BILB = 0;
-  }
-  else ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
-
-  /* pad with '0'-bits */
-  if (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN) {
-    /* padding requires two blocks */
-    while (ctx->buf_ptr < ctx->statesize) {
-      ctx->buffer[(int)ctx->buf_ptr++] = 0;
+  if (remainderIndex > ctx->statesize - LENGTHFIELDLEN) {
+    // extra buffer
+    while (remainderIndex < ctx->statesize) {
+      byteInput[newMsgLen] = 0;
+      remainderIndex++;
+      newMsgLen++;
     }
-    /* digest first padding block */
-    Transform(ctx, ctx->buffer, ctx->statesize);
-    ctx->buf_ptr = 0;
-  }
-  while (ctx->buf_ptr < ctx->statesize-LENGTHFIELDLEN) {
-    ctx->buffer[(int)ctx->buf_ptr++] = 0;
+    // newMsgLen = newMsgLen + (ctx->statesize - remainder);
+    remainderIndex = 0;
+    ctx->block_counter++;
   }
 
-  /* length padding */
+  while (remainderIndex < ctx->statesize-LENGTHFIELDLEN) {
+    byteInput[newMsgLen] = 0;
+    remainderIndex++;
+    newMsgLen++;
+  }
   ctx->block_counter++;
-  ctx->buf_ptr = ctx->statesize;
-  while (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN) {
-    ctx->buffer[(int)--ctx->buf_ptr] = (u8)ctx->block_counter;
+
+  // byteInput[newMsgLen + (remainderIndex -1 )] = (u8)ctx->block_counter;
+  newMsgLen += LENGTHFIELDLEN;
+
+  int lengthPad = LENGTHFIELDLEN;
+  int lengthPadIndex = 1;
+  while (lengthPadIndex <= LENGTHFIELDLEN) {
+    byteInput[newMsgLen - lengthPadIndex] = (u8)ctx->block_counter;
+    lengthPadIndex++;
     ctx->block_counter >>= 8;
   }
 
-  /* digest final padding block */
-  Transform(ctx, ctx->buffer, ctx->statesize);
-  /* perform output transformation */
-  OutputTransformation(ctx);
+  Transform(transformedOutput, input, newMsgLen);
+  return SUCCESS;
+}
+
+
+/* finalise: process remaining data (including padding), perform
+   output transformation, and write hash result to 'output' */
+HashReturn Final(hashState* ctx, u32* input,
+		 BitSequence* output) {
+  int i, j = 0, hashbytelen = ctx->hashbitlen/8;
+  u8 *s = input;
 
   /* store hash result in output */
   for (i = ctx->statesize-hashbytelen; i < ctx->statesize; i++,j++) {
@@ -432,14 +456,10 @@ HashReturn Final(hashState* ctx,
 
   /* zeroise relevant variables and deallocate memory */
   for (i = 0; i < ctx->columns; i++) {
-    ctx->chaining[i] = 0;
+    input[i] = 0;
   }
-  for (i = 0; i < ctx->statesize; i++) {
-    ctx->buffer[i] = 0;
-  }
-  free(ctx->chaining);
-  free(ctx->buffer);
-
+  // free(ctx->chaining);
+  // free(ctx->buffer);
   return SUCCESS;
 }
 
@@ -454,13 +474,20 @@ HashReturn Hash(int hashbitlen,
   /* initialise */
   if ((ret = Init(&context, hashbitlen)) != SUCCESS)
     return ret;
+    
+  u32* transformedOutput = calloc(context.statesize,1);
+  /* allocate memory for state and data buffer */
+  transformedOutput[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
 
   /* process message */
-  if ((ret = Update(&context, data, databitlen)) != SUCCESS)
+  if ((ret = Update(&context, data, databitlen, transformedOutput)) != SUCCESS)
     return ret;
 
   /* finalise */
-  ret = Final(&context, hashval);
+  ret = Final(&context, transformedOutput, hashval);
+
+
+  free(transformedOutput);
 
   return ret;
 }
@@ -494,14 +521,11 @@ void printHexArray(unsigned char *array, uint size) {
 
 int main(int argc, char **argv) {
     uint *ct, *pt;
-    uchar pt_debug[] = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xc, 0xe, 0xe };
-
-    pt = (uint*)pt_debug;
     ct = (uint*)malloc(8 * sizeof(uint)); // Allocating memory for 8 uints
 
     int dataSize; // Total data size
     size_t maxSharedMemory;
-    FILE *file = fopen("groestl256.blb", "r");
+    FILE *file = fopen("text_generator/pt_1MB.txt", "r");
 
     if (file == NULL) {
       printf("Error opening the file.\n");
@@ -513,7 +537,7 @@ int main(int argc, char **argv) {
     fseek(file, 0, SEEK_SET);
 
     // Host array
-    unsigned char *hostData = (unsigned char*)malloc(dataSize);
+    unsigned char *hostData = (unsigned char*)malloc(dataSize + (SIZE512 * 2));
     if (hostData == NULL) {
       printf("Error allocating memory.\n");
       fclose(file);
@@ -526,17 +550,16 @@ int main(int argc, char **argv) {
     const char* message = "my message gdfjhghjkfdhgjklfdshgjklfdhgjkfdshkfjsdhgjfdlshgjkfdsghfjdklhgjfkdlghfjdkslhgfdjksgsdfhj    dsdscxcd3232322cc";
     size_t size = strlen(message);
 
-    unsigned char* data = (unsigned char*)malloc(size );
-    memcpy(data, message, size);
-    // data[size] = '\0';
+    // unsigned char* data = (unsigned char*)malloc(size + (SIZE512 * 2));
+    // memcpy(data, message, size);
+    // crypto_hash(ct, data, size);
 
     printf("Data: %s\n", hostData);
     printf("Size: %zu\n", dataSize);
-    crypto_hash(ct, data, size);
+    crypto_hash(ct, hostData, dataSize);
 
-//    crypto_hash(ct, hostData, dataSize);
     printHexArray(ct, 32);
-    printf("yelllooooow\n");
+    printf("done done\n");
     return 1;
 }
 
