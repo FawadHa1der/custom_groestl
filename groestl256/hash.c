@@ -18,6 +18,9 @@
 #include "tables.h"
 #include <string.h>
 #include <pthread.h>
+#include <stdint.h>
+#include <inttypes.h>
+#include "bs.h"
 
 void OutputTransformation512(u32 *outputTransformation);
 
@@ -193,67 +196,50 @@ typedef struct {
     const u8 *msg_block;   // Pointer to the current message block
     long long *resultBlock ;
     pthread_t thread_id;        // Thread ID
-    int block_index;
     // ... any other arguments needed for processing ...
 } ThreadArgs;
-
-
-ThreadArgs *setup_thread_args(ThreadArgs *args,  const u8 *msg_block, int block_index) {
-    if (msg_block == NULL) {
-        // Handle memory allocation failure
-        printf('msg block nill');
-    }
-    // args->ctx = ctx;
-    args->msg_block = msg_block;
-    args-> resultBlock = malloc(COLS512 * sizeof(long long));
-    args->block_index = block_index;
-    return args;
-}
-
-
-void ProcessBlock(ThreadArgs* args) {
-    long long *m64_m = args->resultBlock, tmp[COLS512];
-    u64 *msg_64 = (u64*)args->msg_block;
-
-    for (int i = 0; i < COLS512; i++) {
-      m64_m[i] = msg_64[i];
-      // m64_hm[i] = m64_h[i] ^ m64_m[i];
-    }
-
-    // Perform the ROUNDQ512 operations
-    ROUNDQ512(m64_m, tmp, 0);
-
-    ROUNDQ512(tmp, m64_m, 1);
-    ROUNDQ512(m64_m, tmp, 2);
-   ROUNDQ512(tmp, m64_m, 3);
-    ROUNDQ512(m64_m, tmp, 4);
-    ROUNDQ512(tmp, m64_m, 5);
-    ROUNDQ512(m64_m, tmp, 6);
-    ROUNDQ512(tmp, m64_m, 7);
-    ROUNDQ512(m64_m, tmp, 8);
-    ROUNDQ512(tmp, m64_m, 9);
-
-    //  for (int i = 0; i < COLS512; i++) {
-    //   printf("  %d %lld %d, ", args->block_index , m64_m[i], i);
-    // }
-    // printf("\n");
-
-
-    // ... and so on for the rest of the ROUNDQ512 calls ...
-
-    // // Final combination steps (similar to the end of the while loop in Transform512)
-    // for (int i = 0; i < COLS512; i++) {
-    //     // ... Same combination steps as in Transform512 ...
-    // }
-}
 
 /* apply the output transformation after identifying variant */
 void OutputTransformation(u32 *output) {
     OutputTransformation512(output);
 }
 
+// size is in bits
+int Transform512BitSliced(uint8_t * outputb, uint8_t * inputb, size_t size) {
+    word_t input_space[BLOCK_SIZE];
+    // word_t rk[11][BLOCK_SIZE];
+
+    size = size / 8;
+
+    memset(outputb,0,size);
+    word_t * state = (word_t *)outputb;
+
+    // bs_expand_key(rk, key);
+
+    while (size > 0)
+    {
+        if (size < BS_BLOCK_SIZE)
+        {
+            memset(input_space,0,BS_BLOCK_SIZE);
+            memmove(input_space, inputb, size);
+            bs_cipher(input_space);
+            memmove(outputb, input_space, size);
+            size = 0;
+            state += size;
+        }
+        else
+        {
+            memmove(state,inputb,BS_BLOCK_SIZE);
+            bs_cipher(state);
+            size -= BS_BLOCK_SIZE;
+            state += BS_BLOCK_SIZE;
+        }
+    }
+}
+
 
 /* digest part of a message in short variants */
+// msglen in bits
 int Transform512(u32 *outputTransformation, const u8 *msg, int msglen) {
   int i;
   long long m64_m[COLS512], *m64_h, m64_hm[COLS512], tmp[COLS512];
@@ -262,23 +248,11 @@ int Transform512(u32 *outputTransformation, const u8 *msg, int msglen) {
   // Determine the number of blocks
   int num_blocks = msglen / SIZE512;
   //  pthread_t threads[num_blocks];
-  ThreadArgs threads_args[num_blocks];
+  // ThreadArgs threads_args[num_blocks];
 
-  int block_index = 0;
+  bs_generate_roundc_matrix();
 
-  for (block_index = 0; block_index < num_blocks; block_index++) {
-    // Arguments for ProcessBlock function
-    setup_thread_args(&threads_args[block_index], msg + (block_index * SIZE512), block_index);
-    pthread_create(&threads_args[block_index].thread_id, NULL, ProcessBlock, &threads_args[block_index]);
-  }
-
-  // Wait for all threads to complete
-  for (block_index = 0;block_index < num_blocks; block_index++) {
-    pthread_join(threads_args[block_index].thread_id, NULL);
-  }
-
-  block_index = 0;
-  m64_h = (u64*)outputTransformation;
+  m64_h = (uint64_t*)outputTransformation;
   while (msglen >= SIZE512) {
     msg_64 = (u64*)msg;
 
@@ -299,33 +273,25 @@ int Transform512(u32 *outputTransformation, const u8 *msg, int msglen) {
     ROUNDP512(tmp, m64_hm, 9);
     
 
-    // ROUNDQ512(m64_m, tmp, 0);
-    // ROUNDQ512(tmp, m64_m, 1);
-    // ROUNDQ512(m64_m, tmp, 2);
-    // ROUNDQ512(tmp, m64_m, 3);
-    // ROUNDQ512(m64_m, tmp, 4);
-    // ROUNDQ512(tmp, m64_m, 5);
-    // ROUNDQ512(m64_m, tmp, 6);
-    // ROUNDQ512(tmp, m64_m, 7);
-    // ROUNDQ512(m64_m, tmp, 8);
-    // ROUNDQ512(tmp, m64_m, 9);
+    ROUNDQ512(m64_m, tmp, 0);
+    ROUNDQ512(tmp, m64_m, 1);
+    ROUNDQ512(m64_m, tmp, 2);
+    ROUNDQ512(tmp, m64_m, 3);
+    ROUNDQ512(m64_m, tmp, 4);
+    ROUNDQ512(tmp, m64_m, 5);
+    ROUNDQ512(m64_m, tmp, 6);
+    ROUNDQ512(tmp, m64_m, 7);
+    ROUNDQ512(m64_m, tmp, 8);
+    ROUNDQ512(tmp, m64_m, 9);
 
-    // m64_m = threads_args[block_index].resultBlock;
     
-    // for (i = 0; i < COLS512; i++) {
-    //   m64_h[i] = m64_h[i] ^ m64_m [i];
-    //   m64_h[i] = m64_h[i] ^ m64_hm[i];
-    // }
     for (i = 0; i < COLS512; i++) {
-      m64_h[i] = m64_h[i] ^ threads_args[block_index].resultBlock[i];
+      m64_h[i] = m64_h[i] ^ m64_m [i];
       m64_h[i] = m64_h[i] ^ m64_hm[i];
-      printf( " m64_m[tid] %lld i %d, \n ", threads_args[block_index].resultBlock[i], i);
-
     }
 
     msg += SIZE512;
-    msglen -= SIZE512;    
-    block_index++;
+    msglen -= SIZE512;   
 
   }
   OutputTransformation(outputTransformation);
@@ -547,16 +513,16 @@ int main(int argc, char **argv) {
     fread(hostData, sizeof(unsigned char), dataSize, file);
     fclose(file);
 
-    // const char* message = "my message gdfjhghjkfdhgjklfdshgjklfdhgjkfdshkfjsdhgjfdlshgjkfdsghfjdklhgjfkdlghfjdkslhgfdjksgsdfhj    dsdscxcd3232322cc";
-    // size_t size = strlen(message);
+    const char* message = "my message gdfjhghjkfdhgjklfdshgjklfdhgjkfdshkfjsdhgjfdlshgjkfdsghfjdklhgjfkdlghfjdkslhgfdjksgsdfhj    dsdscxcd3232322cc";
+    size_t size = strlen(message);
 
-    // unsigned char* data = (unsigned char*)malloc(size + (SIZE512 * 2));
-    // memcpy(data, message, size);
-    // crypto_hash(ct, data, size);
+    unsigned char* data = (unsigned char*)malloc(size + (SIZE512 * 2));
+    memcpy(data, message, size);
+    crypto_hash(ct, data, size);
 
-    printf("Data: %s\n", hostData);
-    printf("Size: %zu\n", dataSize);
-    crypto_hash(ct, hostData, dataSize);
+    // printf("Data: %s\n", hostData);
+    // printf("Size: %zu\n", dataSize);
+    // crypto_hash(ct, hostData, dataSize);
 
     printHexArray(ct, 32);
     printf("done done\n");

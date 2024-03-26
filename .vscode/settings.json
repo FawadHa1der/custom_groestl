@@ -27,7 +27,10 @@
     "string_view": "c",
     "unordered_map": "c",
     "unordered_set": "c",
-    "vector": "c"
+    "vector": "c",
+    "span": "c",
+    "stack": "c",
+    "format": "c"
   },
   "C_Cpp_Runner.cCompilerPath": "clang",
   "C_Cpp_Runner.cppCompilerPath": "clang++",
