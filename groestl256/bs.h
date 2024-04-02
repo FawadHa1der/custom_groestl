@@ -51,7 +51,7 @@ void bs_sbox_rev(word_t U[8]);
 void bs_shiftrows_p(word_t * B);
 void bs_shiftrows_rev(word_t * B);
 
-void bs_mixcolumns(word_t * B);
+void bs_mixbytes(word_t * B);
 void bs_mixcolumns_rev(word_t * B);
 
 void bs_shiftmix(word_t * B);

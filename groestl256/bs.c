@@ -927,6 +927,10 @@ void bs_shiftrows_rev(word_t * B)
 #define A1  8
 #define A2  16
 #define A3  24
+#define A4  32
+#define A5  40
+#define A6  48
+#define A7  56
 
 // Does shift rows and mix columns in same step
 void bs_shiftmix(word_t * B)
@@ -1014,18 +1018,70 @@ void bs_shiftmix(word_t * B)
     memmove(B,Bp_space,sizeof(Bp_space));
 }
 
+void bs_gf_multiply(word_t * B, word_t * A, int C)
+{
+    // B is word_t[8] as input. 
+    // A is word_t[8] for the result
+    // C is the constant multiplier
+    int i;
+    for(i=0; i<8; i++)
+    {
+        A[i] = 0;
+    }
+
+    for(i=0; i<8; i++)
+    {
+        if(C & 1)
+        {
+            for (int j = i, b_index = 0; j < 8; j++, b_index++)
+            {
+               A[j] ^= B[b_index];
+
+            }
+        }
+        C >>= 1;
+        // overflow XOR with 0x1b translated to 0,1,3,4 indices.
+        A[0] ^=  A[7];
+        A[1] ^= A[7];
+        // there is no A[2] assignment here
+        A[3] ^= A[7];
+        A[4] ^= A[7];
+        //B += WORD_SIZE;
+    }
+}
 
 
-void bs_mixcolumns(word_t * B)
+// A has the result
+void bs_gf_add(word_t * A, word_t * B)
+{
+    int i; 
+    for(i=0; i<8; i++)
+    {
+        A[i] ^= B[i];
+    }
+}
+
+
+void bs_mixbytes(word_t * B)
 {
     word_t Bp_space[BLOCK_SIZE];
     word_t * Bp = Bp_space;
+    word_t tmpProducts[8];
     // to understand this, see
     // https://en.wikipedia.org/wiki/Rijndael_mix_columns
     
     int i = 0;
-    for (; i < 4; i++)
+    for (; i < 8; i++)
     {
+    // NEW_S00 = 2S00 + 2S01 + 3S02 + 4SO3 + 5S04 + 3S05 + 5S06 + 7S07
+    // NEW_S01 = 7S00 + 2S01 + 2S02 + 3SO3 + 4S04 + 5S05 + 3S06 + 5S07
+    // NEW_S02 = 5S00 + 7S01 + 2S02 + 2SO3 + 3S04 + 4S05 + 5S06 + 3S07
+    // NEW_S03 = 3S00 + 5S01 + 7S02 + 2SO3 + 2S04 + 3S05 + 4S06 + 5S07
+    // NEW_S04 = 5S00 + 3S01 + 5S02 + 7SO3 + 2S04 + 2S05 + 3S06 + 4S07
+    // NEW_S05 = 4S00 + 5S01 + 3S02 + 5SO3 + 7S04 + 2S05 + 2S06 + 3S07
+    // NEW_S06 = 3S00 + 4S01 + 5S02 + 3SO3 + 5S04 + 7S05 + 2S06 + 2S07
+    // NEW_S07 = 2S00 + 3S01 + 4S02 + 5SO3 + 3S04 + 5S05 + 7S06 + 2S07
+
     //  of = A0 ^ A1;
     //  A0 = A0 ^ (0x1b & ((signed char)of>>7));
 
@@ -1040,107 +1096,386 @@ void bs_mixcolumns(word_t * B)
     //  A0 = A0 ^ (A2)
     //  A0 = A0 ^ (A3)
     //          A0.7    A1.7
-    word_t of = B[A0+7] ^ B[A1+7];
 
-    //          2*A0     2*A1          A1      A2           A3
-    Bp[A0+0] =                     B[A1+0] ^ B[A2+0] ^ B[A3+0] ^ of;
-    Bp[A0+1] = B[A0+0] ^ B[A1+0] ^ B[A1+1] ^ B[A2+1] ^ B[A3+1] ^ of;
-    Bp[A0+2] = B[A0+1] ^ B[A1+1] ^ B[A1+2] ^ B[A2+2] ^ B[A3+2];
-    Bp[A0+3] = B[A0+2] ^ B[A1+2] ^ B[A1+3] ^ B[A2+3] ^ B[A3+3] ^ of;
-    Bp[A0+4] = B[A0+3] ^ B[A1+3] ^ B[A1+4] ^ B[A2+4] ^ B[A3+4] ^ of;
-    Bp[A0+5] = B[A0+4] ^ B[A1+4] ^ B[A1+5] ^ B[A2+5] ^ B[A3+5];
-    Bp[A0+6] = B[A0+5] ^ B[A1+5] ^ B[A1+6] ^ B[A2+6] ^ B[A3+6];
-    Bp[A0+7] = B[A0+6] ^ B[A1+6] ^ B[A1+7] ^ B[A2+7] ^ B[A3+7];
+    // NEW_S00 = 2S00 + 2S01 + 3S02 + 4SO3 + 5S04 + 3S05 + 5S06 + 7S07
+
+    // word_t of = B[A0+7] ^ B[A1+7] ^ B[A2+7];
+    // 2S00
+    bs_gf_multiply(&B[A0], tmpProducts, 2);
+    bs_gf_add(&Bp[A0], tmpProducts);
+
+    // 2S01
+    bs_gf_multiply(&B[A1], tmpProducts, 2);
+    bs_gf_add(&Bp[A0], tmpProducts);
+
+    // 3S02
+    bs_gf_multiply(&B[A2], tmpProducts, 3);
+    bs_gf_add(&Bp[A0], tmpProducts);
+
+    // 4S03
+    bs_gf_multiply(&B[A3], tmpProducts, 4);
+    bs_gf_add(&Bp[A0], tmpProducts);
+
+    // 5S04
+    bs_gf_multiply(&B[A4], tmpProducts, 5);
+    bs_gf_add(&Bp[A0], tmpProducts);
+
+    // 3S05
+    bs_gf_multiply(&B[A5], tmpProducts, 3);
+    bs_gf_add(&Bp[A0], tmpProducts);
+
+    // 5S06
+    bs_gf_multiply(&B[A6], tmpProducts, 5);
+    bs_gf_add(&Bp[A0], tmpProducts);
+
+    // 7S07
+    bs_gf_multiply(&B[A7], tmpProducts, 7);
+    bs_gf_add(&Bp[A0], tmpProducts);
+
+    // NEW_S01 = 7S00 + 2S01 + 2S02 + 3S03 + 4S04 + 5S05 + 3S06 + 5S07
+
+    // 7S00
+    bs_gf_multiply(&B[A0], tmpProducts, 7);
+    bs_gf_add(&Bp[A1], tmpProducts);
+
+    // 2S01
+    bs_gf_multiply(&B[A1], tmpProducts, 2);
+    bs_gf_add(&Bp[A1], tmpProducts);
+
+    // 2S02
+    bs_gf_multiply(&B[A2], tmpProducts, 2);
+    bs_gf_add(&Bp[A1], tmpProducts);
+
+    // 3S03
+    bs_gf_multiply(&B[A3], tmpProducts, 3);
+    bs_gf_add(&Bp[A1], tmpProducts);
+
+    // 4S04
+    bs_gf_multiply(&B[A4], tmpProducts, 4);
+    bs_gf_add(&Bp[A1], tmpProducts);
+
+    // 5S05
+    bs_gf_multiply(&B[A5], tmpProducts, 5);
+    bs_gf_add(&Bp[A1], tmpProducts);
+
+    // 3S06
+    bs_gf_multiply(&B[A6], tmpProducts, 3);
+    bs_gf_add(&Bp[A1], tmpProducts);
+
+    // 5S07
+    bs_gf_multiply(&B[A7], tmpProducts, 5);
+    bs_gf_add(&Bp[A1], tmpProducts);
+
+    // NEW_S02 = 5S00 + 7S01 + 2S02 + 2S03 + 3S04 + 4S05 + 5S06 + 3S07
+
+    // 5S00
+    bs_gf_multiply(&B[A0], tmpProducts, 5);
+    bs_gf_add(&Bp[A2], tmpProducts);
+
+    // 7S01
+    bs_gf_multiply(&B[A1], tmpProducts, 7);
+    bs_gf_add(&Bp[A2], tmpProducts);
+
+    // 2S02
+    bs_gf_multiply(&B[A2], tmpProducts, 2);
+    bs_gf_add(&Bp[A2], tmpProducts);
+
+    // 2S03
+    bs_gf_multiply(&B[A3], tmpProducts, 2);
+    bs_gf_add(&Bp[A2], tmpProducts);
+
+    // 3S04
+    bs_gf_multiply(&B[A4], tmpProducts, 3);
+    bs_gf_add(&Bp[A2], tmpProducts);
+
+    // 4S05
+    bs_gf_multiply(&B[A5], tmpProducts, 4);
+    bs_gf_add(&Bp[A2], tmpProducts);
+
+    // 5S06
+    bs_gf_multiply(&B[A6], tmpProducts, 5);
+    bs_gf_add(&Bp[A2], tmpProducts);
+
+    // 3S07
+    bs_gf_multiply(&B[A7], tmpProducts, 3);
+    bs_gf_add(&Bp[A2], tmpProducts);
+
+    // NEW_S03 = 3S00 + 5S01 + 7S02 + 2S03 + 2S04 + 3S05 + 4S06 + 5S07
+
+    // 3S00
+    bs_gf_multiply(&B[A0], tmpProducts, 3);
+    bs_gf_add(&Bp[A3], tmpProducts);
+
+    // 5S01
+    bs_gf_multiply(&B[A1], tmpProducts, 5);
+    bs_gf_add(&Bp[A3], tmpProducts);
+
+    // 7S02
+    bs_gf_multiply(&B[A2], tmpProducts, 7);
+    bs_gf_add(&Bp[A3], tmpProducts);
+
+    // 2S03
+    bs_gf_multiply(&B[A3], tmpProducts, 2);
+    bs_gf_add(&Bp[A3], tmpProducts);
+
+    // 2S04
+    bs_gf_multiply(&B[A4], tmpProducts, 2);
+    bs_gf_add(&Bp[A3], tmpProducts);
+
+    // 3S05
+    bs_gf_multiply(&B[A5], tmpProducts, 3);
+    bs_gf_add(&Bp[A3], tmpProducts);
+
+    // 4S06
+    bs_gf_multiply(&B[A6], tmpProducts, 4);
+    bs_gf_add(&Bp[A3], tmpProducts);
+
+    // 5S07
+    bs_gf_multiply(&B[A7], tmpProducts, 5);
+    bs_gf_add(&Bp[A3], tmpProducts);
+
+    // NEW_S04 = 5S00 + 3S01 + 5S02 + 7S03 + 2S04 + 2S05 + 3S06 + 4S07
+
+    // 5S00
+    bs_gf_multiply(&B[A0], tmpProducts, 5);
+    bs_gf_add(&Bp[A4], tmpProducts);
+
+    // 3S01
+    bs_gf_multiply(&B[A1], tmpProducts, 3);
+    bs_gf_add(&Bp[A4], tmpProducts);
+
+    // 5S02
+    bs_gf_multiply(&B[A2], tmpProducts, 5);
+    bs_gf_add(&Bp[A4], tmpProducts);
+
+    // 7S03
+    bs_gf_multiply(&B[A3], tmpProducts, 7);
+    bs_gf_add(&Bp[A4], tmpProducts);
+
+    // 2S04
+    bs_gf_multiply(&B[A4], tmpProducts, 2);
+    bs_gf_add(&Bp[A4], tmpProducts);
+
+    // 2S05
+    bs_gf_multiply(&B[A5], tmpProducts, 2);
+    bs_gf_add(&Bp[A4], tmpProducts);
+
+    // 3S06
+    bs_gf_multiply(&B[A6], tmpProducts, 3);
+    bs_gf_add(&Bp[A4], tmpProducts);
+
+    // 4S07
+    bs_gf_multiply(&B[A7], tmpProducts, 4);
+    bs_gf_add(&Bp[A4], tmpProducts);
+
+    // NEW_S05 = 4S00 + 5S01 + 3S02 + 5S03 + 7S04 + 2S05 + 2S06 + 3S07
+
+    // 4S00
+    bs_gf_multiply(&B[A0], tmpProducts, 4);
+    bs_gf_add(&Bp[A5], tmpProducts);
+
+    // 5S01
+    bs_gf_multiply(&B[A1], tmpProducts, 5);
+    bs_gf_add(&Bp[A5], tmpProducts);
+
+    // 3S02
+    bs_gf_multiply(&B[A2], tmpProducts, 3);
+    bs_gf_add(&Bp[A5], tmpProducts);
+
+    // 5S03
+    bs_gf_multiply(&B[A3], tmpProducts, 5);
+    bs_gf_add(&Bp[A5], tmpProducts);
+
+    // 7S04
+    bs_gf_multiply(&B[A4], tmpProducts, 7);
+    bs_gf_add(&Bp[A5], tmpProducts);
+
+    // 2S05
+    bs_gf_multiply(&B[A5], tmpProducts, 2);
+    bs_gf_add(&Bp[A5], tmpProducts);
+
+    // 2S06
+    bs_gf_multiply(&B[A6], tmpProducts, 2);
+    bs_gf_add(&Bp[A5], tmpProducts);
+
+    // 3S07
+    bs_gf_multiply(&B[A7], tmpProducts, 3);
+    bs_gf_add(&Bp[A5], tmpProducts);
+
+    // NEW_S06 = 3S00 + 4S01 + 5S02 + 3S03 + 5S04 + 7S05 + 2S06 + 2S07
+
+    // 3S00
+    bs_gf_multiply(&B[A0], tmpProducts, 3);
+    bs_gf_add(&Bp[A6], tmpProducts);
+
+    // 4S01
+    bs_gf_multiply(&B[A1], tmpProducts, 4);
+    bs_gf_add(&Bp[A6], tmpProducts);
+
+    // 5S02
+    bs_gf_multiply(&B[A2], tmpProducts, 5);
+    bs_gf_add(&Bp[A6], tmpProducts);
+
+    // 3S03
+    bs_gf_multiply(&B[A3], tmpProducts, 3);
+    bs_gf_add(&Bp[A6], tmpProducts);
+
+    // 5S04
+    bs_gf_multiply(&B[A4], tmpProducts, 5);
+    bs_gf_add(&Bp[A6], tmpProducts);
+
+    // 7S05
+    bs_gf_multiply(&B[A5], tmpProducts, 7);
+    bs_gf_add(&Bp[A6], tmpProducts);
+
+    // 2S06
+    bs_gf_multiply(&B[A6], tmpProducts, 2);
+    bs_gf_add(&Bp[A6], tmpProducts);
+
+    // 2S07
+    bs_gf_multiply(&B[A7], tmpProducts, 2);
+    bs_gf_add(&Bp[A6], tmpProducts);
+
+    // NEW_S07 = 2S00 + 3S01 + 4S02 + 5S03 + 3S04 + 5S05 + 7S06 + 2S07
+
+    // 2S00
+    bs_gf_multiply(&B[A0], tmpProducts, 2);
+    bs_gf_add(&Bp[A7], tmpProducts);
+
+    // 3S01
+    bs_gf_multiply(&B[A1], tmpProducts, 3);
+    bs_gf_add(&Bp[A7], tmpProducts);
+
+    // 4S02
+    bs_gf_multiply(&B[A2], tmpProducts, 4);
+    bs_gf_add(&Bp[A7], tmpProducts);
+
+    // 5S03
+    bs_gf_multiply(&B[A3], tmpProducts, 5);
+    bs_gf_add(&Bp[A7], tmpProducts);
+
+    // 3S04
+    bs_gf_multiply(&B[A4], tmpProducts, 3);
+    bs_gf_add(&Bp[A7], tmpProducts);
+
+    // 5S05
+    bs_gf_multiply(&B[A5], tmpProducts, 5);
+    bs_gf_add(&Bp[A7], tmpProducts);
+
+    // 7S06
+    bs_gf_multiply(&B[A6], tmpProducts, 7);
+    bs_gf_add(&Bp[A7], tmpProducts);
+
+    // 2S07
+    bs_gf_multiply(&B[A7], tmpProducts, 2);
+    bs_gf_add(&Bp[A7], tmpProducts);
+
+        //
+    Bp += BLOCK_SIZE/8;
+    B  += BLOCK_SIZE/8;
 
 
 
-    //  of = A1 ^ A2
-    //  A1 = A1 ^ (0x1b & ((signed char)of>>7));
 
-    //// A0
-    //  A1 = A1 ^ (A0)
+    // //          2*S0     2*S1       2*S2      S2          // S1      S2           S3
+    // Bp[A0+0] =                               B[A2+0]         B[A1+0] ^ B[A2+0] ^ B[A3+0] ^ of;
+    // Bp[A0+1] = B[A0+0] ^ B[A1+0] ^ B[A2+0] ^ B[A2+0]       ^ B[A1+1] ^ B[A2+1] ^ B[A3+1] ^ of;
+    // Bp[A0+2] = B[A0+1] ^ B[A1+1] ^ B[A2+0] ^ B[A2+0]       ^ B[A1+2] ^ B[A2+2] ^ B[A3+2];
+    // Bp[A0+3] = B[A0+2] ^ B[A1+2] ^ B[A2+0] ^ B[A2+0]       ^ B[A1+3] ^ B[A2+3] ^ B[A3+3] ^ of;
+    // Bp[A0+4] = B[A0+3] ^ B[A1+3] ^ B[A2+0] ^ B[A2+0]       ^ B[A1+4] ^ B[A2+4] ^ B[A3+4] ^ of;
+    // Bp[A0+5] = B[A0+4] ^ B[A1+4] ^ B[A2+0] ^ B[A2+0]       ^ B[A1+5] ^ B[A2+5] ^ B[A3+5];
+    // Bp[A0+6] = B[A0+5] ^ B[A1+5] ^ B[A2+0] ^ B[A2+0]       ^ B[A1+6] ^ B[A2+6] ^ B[A3+6];
+    // Bp[A0+7] = B[A0+6] ^ B[A1+6] ^ B[A2+0] ^ B[A2+0]       ^ B[A1+7] ^ B[A2+7] ^ B[A3+7];
 
-    //// + 2 * A1
-    //  A1 = A1 ^ (A1 << 1)
 
-    //// + 3 * A2
-    //  A1 = A1 ^ (A2)
-    //  A1 = A1 ^ (A2<<1)
 
-    //// + A3
-    //  A1 = A1 ^ (A3)
+    // //  of = A1 ^ A2
+    // //  A1 = A1 ^ (0x1b & ((signed char)of>>7));
 
-    of = B[A1+7] ^ B[A2+7];
+    // //// A0
+    // //  A1 = A1 ^ (A0)
 
-    //          A0      2*A1        2*A2      A2        A3
-    Bp[A1+0] = B[A0+0]                     ^ B[A2+0] ^ B[A3+0] ^ of;
-    Bp[A1+1] = B[A0+1] ^ B[A1+0] ^ B[A2+0] ^ B[A2+1] ^ B[A3+1] ^ of;
-    Bp[A1+2] = B[A0+2] ^ B[A1+1] ^ B[A2+1] ^ B[A2+2] ^ B[A3+2];
-    Bp[A1+3] = B[A0+3] ^ B[A1+2] ^ B[A2+2] ^ B[A2+3] ^ B[A3+3] ^ of;
-    Bp[A1+4] = B[A0+4] ^ B[A1+3] ^ B[A2+3] ^ B[A2+4] ^ B[A3+4] ^ of;
-    Bp[A1+5] = B[A0+5] ^ B[A1+4] ^ B[A2+4] ^ B[A2+5] ^ B[A3+5];
-    Bp[A1+6] = B[A0+6] ^ B[A1+5] ^ B[A2+5] ^ B[A2+6] ^ B[A3+6];
-    Bp[A1+7] = B[A0+7] ^ B[A1+6] ^ B[A2+6] ^ B[A2+7] ^ B[A3+7];
+    // //// + 2 * A1
+    // //  A1 = A1 ^ (A1 << 1)
+
+    // //// + 3 * A2
+    // //  A1 = A1 ^ (A2)
+    // //  A1 = A1 ^ (A2<<1)
+
+    // //// + A3
+    // //  A1 = A1 ^ (A3)
+
+    // of = B[A1+7] ^ B[A2+7];
+
+    // //          A0      2*A1        2*A2      A2        A3
+    // Bp[A1+0] = B[A0+0]                     ^ B[A2+0] ^ B[A3+0] ^ of;
+    // Bp[A1+1] = B[A0+1] ^ B[A1+0] ^ B[A2+0] ^ B[A2+1] ^ B[A3+1] ^ of;
+    // Bp[A1+2] = B[A0+2] ^ B[A1+1] ^ B[A2+1] ^ B[A2+2] ^ B[A3+2];
+    // Bp[A1+3] = B[A0+3] ^ B[A1+2] ^ B[A2+2] ^ B[A2+3] ^ B[A3+3] ^ of;
+    // Bp[A1+4] = B[A0+4] ^ B[A1+3] ^ B[A2+3] ^ B[A2+4] ^ B[A3+4] ^ of;
+    // Bp[A1+5] = B[A0+5] ^ B[A1+4] ^ B[A2+4] ^ B[A2+5] ^ B[A3+5];
+    // Bp[A1+6] = B[A0+6] ^ B[A1+5] ^ B[A2+5] ^ B[A2+6] ^ B[A3+6];
+    // Bp[A1+7] = B[A0+7] ^ B[A1+6] ^ B[A2+6] ^ B[A2+7] ^ B[A3+7];
     
 
-    //  of = A2 ^ A3
-    //  A2 = A2 ^ (0x1b & ((signed char)of>>7));
+    // //  of = A2 ^ A3
+    // //  A2 = A2 ^ (0x1b & ((signed char)of>>7));
 
-    //// A0 + A1
-    //  A2 = A2 ^ (A0)
-    //  A2 = A2 ^ (A1)
+    // //// A0 + A1
+    // //  A2 = A2 ^ (A0)
+    // //  A2 = A2 ^ (A1)
 
-    //// + 2 * A2
-    //  A2 = A2 ^ (A2 << 1)
+    // //// + 2 * A2
+    // //  A2 = A2 ^ (A2 << 1)
 
-    //// + 3 * A3
-    //  A2 = A2 ^ (A3)
-    //  A2 = A2 ^ (A3<<1)
+    // //// + 3 * A3
+    // //  A2 = A2 ^ (A3)
+    // //  A2 = A2 ^ (A3<<1)
 
 
-    of = B[A2+7] ^ B[A3+7];
+    // of = B[A2+7] ^ B[A3+7];
 
-    //          A0      A1          2*A2       2*A3         A3
-    Bp[A2+0] = B[A0+0] ^ B[A1+0]                     ^ B[A3+0] ^ of;
-    Bp[A2+1] = B[A0+1] ^ B[A1+1] ^ B[A2+0] ^ B[A3+0] ^ B[A3+1] ^ of;
-    Bp[A2+2] = B[A0+2] ^ B[A1+2] ^ B[A2+1] ^ B[A3+1] ^ B[A3+2];
-    Bp[A2+3] = B[A0+3] ^ B[A1+3] ^ B[A2+2] ^ B[A3+2] ^ B[A3+3] ^ of;
-    Bp[A2+4] = B[A0+4] ^ B[A1+4] ^ B[A2+3] ^ B[A3+3] ^ B[A3+4] ^ of;
-    Bp[A2+5] = B[A0+5] ^ B[A1+5] ^ B[A2+4] ^ B[A3+4] ^ B[A3+5];
-    Bp[A2+6] = B[A0+6] ^ B[A1+6] ^ B[A2+5] ^ B[A3+5] ^ B[A3+6];
-    Bp[A2+7] = B[A0+7] ^ B[A1+7] ^ B[A2+6] ^ B[A3+6] ^ B[A3+7];
+    // //          A0      A1          2*A2       2*A3         A3
+    // Bp[A2+0] = B[A0+0] ^ B[A1+0]                     ^ B[A3+0] ^ of;
+    // Bp[A2+1] = B[A0+1] ^ B[A1+1] ^ B[A2+0] ^ B[A3+0] ^ B[A3+1] ^ of;
+    // Bp[A2+2] = B[A0+2] ^ B[A1+2] ^ B[A2+1] ^ B[A3+1] ^ B[A3+2];
+    // Bp[A2+3] = B[A0+3] ^ B[A1+3] ^ B[A2+2] ^ B[A3+2] ^ B[A3+3] ^ of;
+    // Bp[A2+4] = B[A0+4] ^ B[A1+4] ^ B[A2+3] ^ B[A3+3] ^ B[A3+4] ^ of;
+    // Bp[A2+5] = B[A0+5] ^ B[A1+5] ^ B[A2+4] ^ B[A3+4] ^ B[A3+5];
+    // Bp[A2+6] = B[A0+6] ^ B[A1+6] ^ B[A2+5] ^ B[A3+5] ^ B[A3+6];
+    // Bp[A2+7] = B[A0+7] ^ B[A1+7] ^ B[A2+6] ^ B[A3+6] ^ B[A3+7];
     
 
-    //  A3 = A0 ^ A3
-    //  A3 = A3 ^ (0x1b & ((signed char)of>>7));
+    // //  A3 = A0 ^ A3
+    // //  A3 = A3 ^ (0x1b & ((signed char)of>>7));
 
-    //// 3 * A0
-    //  A3 = A3 ^ (A0)
-    //  A3 = A3 ^ (A0 << 1)
+    // //// 3 * A0
+    // //  A3 = A3 ^ (A0)
+    // //  A3 = A3 ^ (A0 << 1)
 
-    //// + A1 + A2
-    //  A3 = A3 ^ A1
-    //  A3 = A3 ^ A2
+    // //// + A1 + A2
+    // //  A3 = A3 ^ A1
+    // //  A3 = A3 ^ A2
 
-    //// + 2 * A3
-    //  A3 = A3 ^ (A3<<1)
+    // //// + 2 * A3
+    // //  A3 = A3 ^ (A3<<1)
 
-    of = B[A0+7] ^ B[A3+7];
+    // of = B[A0+7] ^ B[A3+7];
 
-    //        2*A0       A0         A1         A2       2*A3
-    Bp[A3+0] = B[A0+0] ^           B[A1+0] ^ B[A2+0]           ^ of;
-    Bp[A3+1] = B[A0+1] ^ B[A0+0] ^ B[A1+1] ^ B[A2+1] ^ B[A3+0] ^ of;
-    Bp[A3+2] = B[A0+2] ^ B[A0+1] ^ B[A1+2] ^ B[A2+2] ^ B[A3+1];
-    Bp[A3+3] = B[A0+3] ^ B[A0+2] ^ B[A1+3] ^ B[A2+3] ^ B[A3+2] ^ of;
-    Bp[A3+4] = B[A0+4] ^ B[A0+3] ^ B[A1+4] ^ B[A2+4] ^ B[A3+3] ^ of;
-    Bp[A3+5] = B[A0+5] ^ B[A0+4] ^ B[A1+5] ^ B[A2+5] ^ B[A3+4];
-    Bp[A3+6] = B[A0+6] ^ B[A0+5] ^ B[A1+6] ^ B[A2+6] ^ B[A3+5];
-    Bp[A3+7] = B[A0+7] ^ B[A0+6] ^ B[A1+7] ^ B[A2+7] ^ B[A3+6];
+    // //        2*A0       A0         A1         A2       2*A3
+    // Bp[A3+0] = B[A0+0] ^           B[A1+0] ^ B[A2+0]           ^ of;
+    // Bp[A3+1] = B[A0+1] ^ B[A0+0] ^ B[A1+1] ^ B[A2+1] ^ B[A3+0] ^ of;
+    // Bp[A3+2] = B[A0+2] ^ B[A0+1] ^ B[A1+2] ^ B[A2+2] ^ B[A3+1];
+    // Bp[A3+3] = B[A0+3] ^ B[A0+2] ^ B[A1+3] ^ B[A2+3] ^ B[A3+2] ^ of;
+    // Bp[A3+4] = B[A0+4] ^ B[A0+3] ^ B[A1+4] ^ B[A2+4] ^ B[A3+3] ^ of;
+    // Bp[A3+5] = B[A0+5] ^ B[A0+4] ^ B[A1+5] ^ B[A2+5] ^ B[A3+4];
+    // Bp[A3+6] = B[A0+6] ^ B[A0+5] ^ B[A1+6] ^ B[A2+6] ^ B[A3+5];
+    // Bp[A3+7] = B[A0+7] ^ B[A0+6] ^ B[A1+7] ^ B[A2+7] ^ B[A3+6];
     
 
-    //
-    Bp += BLOCK_SIZE/4;
-    B  += BLOCK_SIZE/4;
+    // //
+    // Bp += BLOCK_SIZE/4;
+    // B  += BLOCK_SIZE/4;
     }
 
 
@@ -1294,6 +1629,28 @@ void print_word_in_hex_and_binary(word_t word) {
     printf("\n");
 }
 
+unsigned char GMul(unsigned char a, unsigned char b) { // Galois Field (256) Multiplication of two Bytes
+    unsigned char p = 0;
+
+    for (int counter = 0; counter < 8; counter++) {
+        if ((b & 1) != 0) {
+            p ^= a;
+        }
+
+        unsigned char hi_bit_set = (a & 0x80) != 0;
+        a <<= 1;
+        if (hi_bit_set) {
+            a ^= 0x1B; /* x^8 + x^4 + x^3 + x + 1 */
+        }
+        b >>= 1;
+    }
+
+    printf("a: %d, b: %d, p: %d\n", a, b, p);
+
+    return p;
+}
+
+
 
 #define P_CONSTANT_FIRST_ROW 0x7060504030201000ULL
 #define Q_CONSTANT_LAST_ROW 0x8f9fafbfcfdfefffULL
@@ -1307,6 +1664,10 @@ void bs_generate_roundc_matrix (){
 
     word_t round = 0; // goes from 0 - 9
     word_t round_constant = round * 0x0101010101010101ULL;
+
+    // just to test
+    GMul(203,7);
+    return;
 
     for (round = 0 ; round < 10; round++) {
         round_constant = round * 0x0101010101010101ULL;
@@ -1443,7 +1804,7 @@ void bs_cipher(word_t state[BLOCK_SIZE]/*, word_t (* rk)[BLOCK_SIZE] */)
         bs_addroundkey(state,round);
         bs_apply_sbox(state);
         /*bs_shiftrows_p(state);*/
-        /*bs_mixcolumns(state);*/
+        /*bs_mixbytes(state);*/
         bs_shiftmix(state);
         bs_addroundkey(state,round);
     }
