@@ -30,7 +30,8 @@
     "vector": "c",
     "span": "c",
     "stack": "c",
-    "format": "c"
+    "format": "c",
+    "*.inc": "c"
   },
   "C_Cpp_Runner.cCompilerPath": "clang",
   "C_Cpp_Runner.cppCompilerPath": "clang++",

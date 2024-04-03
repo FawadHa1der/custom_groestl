@@ -22,7 +22,7 @@
 #include <inttypes.h>
 #include "bs.h"
 
-void OutputTransformation512(u32 *outputTransformation);
+void bs_OutputTransformation512(word_t *outputTransformation);
 
 
 
@@ -199,42 +199,91 @@ typedef struct {
     // ... any other arguments needed for processing ...
 } ThreadArgs;
 
-/* apply the output transformation after identifying variant */
-void OutputTransformation(u32 *output) {
-    OutputTransformation512(output);
-}
+// /* apply the output transformation after identifying variant */
+// void OutputTransformation(u32 *output) {
+//     OutputTransformation512(output);
+// }
 
 // size is in bits
 int Transform512BitSliced(uint8_t * outputb, uint8_t * inputb, size_t size) {
-    word_t input_space[BLOCK_SIZE];
-    // word_t rk[11][BLOCK_SIZE];
+    // word_t input_space[BLOCK_SIZE];
+    // // word_t rk[11][BLOCK_SIZE];
 
-    size = size / 8;
+    // size = size / 8;
 
-    memset(outputb,0,size);
-    word_t * state = (word_t *)outputb;
+    // memset(outputb,0,size);
+    // word_t * state = (word_t *)outputb;
+
+    // // bs_expand_key(rk, key);
+    // while (size > 0)
+    // {
+    //     if (size < BS_BLOCK_SIZE)
+    //     {
+    //         memset(input_space,0,BS_BLOCK_SIZE);
+    //         memmove(input_space, inputb, size);
+    //         bs_cipher(input_space);
+    //         memmove(outputb, input_space, size);
+    //         size = 0;
+    //         state += size;
+    //     }
+    //     else
+    //     {
+    //         memmove(state,inputb,BS_BLOCK_SIZE);
+    //         bs_cipher(state);
+    //         size -= BS_BLOCK_SIZE;
+    //         state += BS_BLOCK_SIZE;
+    //     }
+    // }
+}
+
+
+/* digest part of a message in short variants */
+// total msglen in bytes
+int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
+  int i;
+  long long m64_m[COLS512], *m64_h, m64_hm[COLS512], tmp[COLS512];
+  u64 *msg_64;
+  int offset = 0;
+
+
+    word_t input_space[BLOCK_SIZE]; // gets bitsliced soon after copy
+    // word_t bs_input_space[BLOCK_SIZE];
+    // word_t bs_state[BLOCK_SIZE];
+    int size_left = msglen;
+
+    // memset(outputb,0,size);
+    // word_t * state = (word_t *)outputb;
 
     // bs_expand_key(rk, key);
 
-    while (size > 0)
+    while (size_left > 0)
     {
-        if (size < BS_BLOCK_SIZE)
+        if (size_left < BS_BLOCK_SIZE)
         {
-            memset(input_space,0,BS_BLOCK_SIZE);
-            memmove(input_space, inputb, size);
-            bs_cipher(input_space);
-            memmove(outputb, input_space, size);
-            size = 0;
-            state += size;
+            // memset(input_space,0,BS_BLOCK_SIZE);
+            memmove(input_space, msg +  offset, BS_BLOCK_SIZE);
+            bs_transpose(input_space);
+            bs_cipher(bs_state, input_space); // output state is in bs_state
+            // memmove(outputb, input_space, size);
+            offset += BS_BLOCK_SIZE;
+            size_left -= BS_BLOCK_SIZE;
         }
         else
         {
-            memmove(state,inputb,BS_BLOCK_SIZE);
-            bs_cipher(state);
-            size -= BS_BLOCK_SIZE;
-            state += BS_BLOCK_SIZE;
+            memmove(input_space, msg +  offset, BS_BLOCK_SIZE);
+            bs_transpose(input_space);
+            bs_cipher(bs_state, input_space);
+            offset += BS_BLOCK_SIZE;
+            size_left -= BS_BLOCK_SIZE;
+            break;
         }
     }
+
+
+  bs_OutputTransformation512(bs_state);
+  bs_transpose_rev(bs_state);
+
+  // return 0;
 }
 
 
@@ -250,7 +299,7 @@ int Transform512(u32 *outputTransformation, const u8 *msg, int msglen) {
   //  pthread_t threads[num_blocks];
   // ThreadArgs threads_args[num_blocks];
 
-  bs_generate_roundc_matrix();
+  // bs_generate_roundc_matrix();
 
   m64_h = (uint64_t*)outputTransformation;
   while (msglen >= SIZE512) {
@@ -294,7 +343,7 @@ int Transform512(u32 *outputTransformation, const u8 *msg, int msglen) {
     msglen -= SIZE512;   
 
   }
-  OutputTransformation(outputTransformation);
+//  OutputTransformation(outputTransformation);
   return 0;
 }
 
@@ -305,29 +354,40 @@ int Transform(u32 *outputTransformation, const u8 *msg, int msglen) {
 }
 
 /* apply the output transformation of short variants */
-void OutputTransformation512(u32 *outputTransformation) {
+void bs_OutputTransformation512(word_t *state) {
   int i;
   long long *m64_h, tmp1[COLS512], tmp2[COLS512];
-  m64_h = (u64*)outputTransformation;
 
-  for (i = 0; i < COLS512; i++) {
-    tmp1[i] = m64_h[i];
-  }
+    word_t bs_p_round_constant[BLOCK_SIZE];
+    word_t bs_q_round_constant[BLOCK_SIZE];
 
-  ROUNDP512(tmp1, tmp2, 0);
-  ROUNDP512(tmp2, tmp1, 1);
-  ROUNDP512(tmp1, tmp2, 2);
-  ROUNDP512(tmp2, tmp1, 3);
-  ROUNDP512(tmp1, tmp2, 4);
-  ROUNDP512(tmp2, tmp1, 5);
-  ROUNDP512(tmp1, tmp2, 6);
-  ROUNDP512(tmp2, tmp1, 7);
-  ROUNDP512(tmp1, tmp2, 8);
-  ROUNDP512(tmp2, tmp1, 9);
+    // word_t bs_m64_m[BLOCK_SIZE];
+    word_t bs_m64_hm[BLOCK_SIZE];
 
-  for (i = 0; i < COLS512; i++) {
-    m64_h[i] = m64_h[i] ^ tmp1[i];
-  }
+
+    for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+        // bs_m64_m[word_index] = input[word_index];
+        bs_m64_hm[word_index] = state[word_index] ;
+    }
+
+    for (word_t round = 1; round < 10; round++)
+    {
+        bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
+        // XOR with round constants
+        for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+            bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
+        }
+
+        // P 
+        bs_apply_sbox(bs_m64_hm);
+        bs_shiftrows_p(bs_m64_hm);
+        bs_mixbytes(bs_m64_hm);
+
+
+        for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+            state[word_index] = state[word_index] ^ bs_m64_hm[word_index];
+        }
+    }
 }
 
 /* initialise context */
@@ -402,8 +462,27 @@ HashReturn Update(hashState* ctx,
     lengthPadIndex++;
     ctx->block_counter >>= 8;
   }
+  /***********************START OF MESSAGE REPLICATION?TRANSFORMATION JUST FOR TESTING*/
 
-  Transform(transformedOutput, input, newMsgLen);
+  int msgLenInBytes = newMsgLen/8;
+  int NO_OF_PARALLEL_INPUTS = 64;
+  uchar* transformedInput = calloc(msgLenInBytes * NO_OF_PARALLEL_INPUTS, 0);
+  for (int transformIndex = 0; transformIndex < NO_OF_PARALLEL_INPUTS; transformIndex++) {
+    // first block of all the parallel inputs are placed first and then the second blocks for all the parallel inputs and so on
+    for (int blockIndex = 0; blockIndex < ctx->block_counter; blockIndex++) {
+      // ctx->statesize should be equal to 64 or msgLenInBytes/ ctx->block_counter
+      memcpy(transformedInput + ((transformIndex * msgLenInBytes) + (ctx->statesize * blockIndex)), input + (ctx->statesize * blockIndex) ,  ctx->statesize);
+    }
+  }
+
+ // uchar* combinedTransformedOutput = calloc(ctx->statesize * NO_OF_PARALLEL_INPUTS, 0);
+ word_t combinedTransformedOutput[BLOCK_SIZE];
+
+  Transform512Combined(combinedTransformedOutput, transformedInput, msgLenInBytes * NO_OF_PARALLEL_INPUTS);
+
+/*****************************/
+  // prev call below
+  // Transform(transformedOutput, input, newMsgLen);
   return SUCCESS;
 }
 

@@ -1640,7 +1640,7 @@ unsigned char GMul(unsigned char a, unsigned char b) { // Galois Field (256) Mul
         unsigned char hi_bit_set = (a & 0x80) != 0;
         a <<= 1;
         if (hi_bit_set) {
-            a ^= 0x1B; /* x^8 + x^4 + x^3 + x + 1 */
+            a ^= 0x1B; /* x^8 = x^4 + x^3 + x + 1 */
         }
         b >>= 1;
     }
@@ -1654,20 +1654,13 @@ unsigned char GMul(unsigned char a, unsigned char b) { // Galois Field (256) Mul
 
 #define P_CONSTANT_FIRST_ROW 0x7060504030201000ULL
 #define Q_CONSTANT_LAST_ROW 0x8f9fafbfcfdfefffULL
-void bs_generate_roundc_matrix (){
+void bs_generate_roundc_matrix ( word_t * bs_p_round_constant, word_t* bs_q_round_constant, word_t round){
 
     word_t q_round_constant[BLOCK_SIZE];
     word_t p_round_constant[BLOCK_SIZE];
 
-    word_t bs_p_round_constant[BLOCK_SIZE];
-    word_t bs_q_round_constant[BLOCK_SIZE];
-
-    word_t round = 0; // goes from 0 - 9
+    // word_t round = 0; // goes from 0 - 9
     word_t round_constant = round * 0x0101010101010101ULL;
-
-    // just to test
-    GMul(203,7);
-    return;
 
     for (round = 0 ; round < 10; round++) {
         round_constant = round * 0x0101010101010101ULL;
@@ -1794,25 +1787,118 @@ void bs_generate_roundc_matrix (){
 
 }
 
-void bs_cipher(word_t state[BLOCK_SIZE]/*, word_t (* rk)[BLOCK_SIZE] */)
+void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
 {
-    int round;
-    bs_transpose(state);
+    word_t round;
+    // bs_transpose(input);
+
+/**
+  // Determine the number of blocks
+  int num_blocks = msglen / SIZE512;
+  //  pthread_t threads[num_blocks];
+  // ThreadArgs threads_args[num_blocks];
+
+  bs_generate_roundc_matrix();
+
+  m64_h = (uint64_t*)outputTransformation;
+  while (msglen >= SIZE512) {
+    msg_64 = (u64*)msg;
+
+    for (i = 0; i < COLS512; i++) {
+      m64_m[i] = msg_64[i];
+      m64_hm[i] = m64_h[i] ^ m64_m[i];
+    }
+
+    ROUNDP512(m64_hm, tmp, 0);
+    ROUNDP512(tmp, m64_hm, 1);
+    ROUNDP512(m64_hm, tmp, 2);
+    ROUNDP512(tmp, m64_hm, 3);
+    ROUNDP512(m64_hm, tmp, 4);
+    ROUNDP512(tmp, m64_hm, 5);
+    ROUNDP512(m64_hm, tmp, 6);
+    ROUNDP512(tmp, m64_hm, 7);
+    ROUNDP512(m64_hm, tmp, 8);
+    ROUNDP512(tmp, m64_hm, 9);
+    
+
+    ROUNDQ512(m64_m, tmp, 0);
+    ROUNDQ512(tmp, m64_m, 1);
+    ROUNDQ512(m64_m, tmp, 2);
+    ROUNDQ512(tmp, m64_m, 3);
+    ROUNDQ512(m64_m, tmp, 4);
+    ROUNDQ512(tmp, m64_m, 5);
+    ROUNDQ512(m64_m, tmp, 6);
+    ROUNDQ512(tmp, m64_m, 7);
+    ROUNDQ512(m64_m, tmp, 8);
+    ROUNDQ512(tmp, m64_m, 9);
+
+    
+    for (i = 0; i < COLS512; i++) {
+      m64_h[i] = m64_h[i] ^ m64_m [i];
+      m64_h[i] = m64_h[i] ^ m64_hm[i];
+    }
+
+    msg += SIZE512;
+    msglen -= SIZE512;   
+
+  }
+ * */
+    word_t bs_p_round_constant[BLOCK_SIZE];
+    word_t bs_q_round_constant[BLOCK_SIZE];
+
+    word_t bs_m64_m[BLOCK_SIZE];
+    word_t bs_m64_hm[BLOCK_SIZE];
+
+
+    for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+        bs_m64_m[word_index] = input[word_index];
+        bs_m64_hm[word_index] = state[word_index] ^ bs_m64_m[word_index];
+    }
 
     for (round = 1; round < 10; round++)
     {
-        bs_addroundkey(state,round);
-        bs_apply_sbox(state);
-        /*bs_shiftrows_p(state);*/
-        /*bs_mixbytes(state);*/
-        bs_shiftmix(state);
-        bs_addroundkey(state,round);
+        bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
+        // XOR with round constants
+        for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+            bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
+            bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
+        }
+
+        // P 
+        bs_apply_sbox(bs_m64_hm);
+        bs_shiftrows_p(bs_m64_hm);
+        bs_mixbytes(bs_m64_hm);
+
+        // Q
+        bs_apply_sbox(bs_m64_m);
+        bs_shiftrows_q(bs_m64_m);
+        bs_mixbytes(bs_m64_m);
+
+        for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+            state[word_index] = state[word_index] ^ bs_m64_m [word_index];
+            state[word_index] = state[word_index] ^ bs_m64_hm[word_index];
+        }
     }
-    bs_apply_sbox(state);
-    bs_shiftrows_p(state);
     // bs_addroundkey(state,rk[10]);
-    bs_transpose_rev(state);
+    // bs_transpose_rev(state);
 }
+
+// void RND512P(uint32_t *x32, uint32_t r) {
+//   uint32_t i;
+
+//   x32[ 0] ^= 0x30201000^r;
+//   x32[ 1] ^= 0x70605040^r;
+
+//   subBytes((uint8_t*)x32);
+
+//   for(i=1;i<8;i++)
+//   {
+//     rotate_line_left(x32,i, i);
+//   }
+						
+//   mixBytes(x32);
+// }
+
 
 void bs_cipher_rev(word_t state[BLOCK_SIZE], word_t (* rk)[BLOCK_SIZE])
 {
