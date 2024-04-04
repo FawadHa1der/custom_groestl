@@ -20,231 +20,24 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <inttypes.h>
-#include "bs.h"
 
 void bs_OutputTransformation512(word_t *outputTransformation);
 
 
 
-/* compute a round of P512 */
-#define ROUNDP512(m_in, m, r) do {					\
-    u64* T_m64 = (u64*)T;						\
-    long long zero;								\
-    u32* x = (u32*)m_in;						\
-    zero = 0;						\
-    m[0] = T_m64[0*256+((r)^EXT_BYTE(x[ 0],0))] ^ zero;	\
-    m[7] = T_m64[1*256+EXT_BYTE(x[ 0],1)] ^ zero;		\
-    m[6] = T_m64[2*256+EXT_BYTE(x[ 0],2)] ^ zero;		\
-    m[5] = T_m64[3*256+EXT_BYTE(x[ 0],3)] ^ zero;		\
-    m[4] = T_m64[4*256+EXT_BYTE(x[ 1],0)] ^ zero;		\
-    m[3] = T_m64[5*256+EXT_BYTE(x[ 1],1)] ^ zero;		\
-    m[2] = T_m64[6*256+EXT_BYTE(x[ 1],2)] ^ zero;		\
-    m[1] = T_m64[7*256+EXT_BYTE(x[ 1],3)] ^ zero;		\
-    m[7] = T_m64[0*256+((r)^0x70^EXT_BYTE(x[14],0))] ^ m[7]; \
-    m[6] = T_m64[1*256+EXT_BYTE(x[14],1)] ^ m[6];		\
-    m[5] = T_m64[2*256+EXT_BYTE(x[14],2)] ^ m[5];		\
-    m[4] = T_m64[3*256+EXT_BYTE(x[14],3)] ^ m[4];		\
-    m[3] = T_m64[4*256+EXT_BYTE(x[15],0)] ^ m[3];		\
-    m[2] = T_m64[5*256+EXT_BYTE(x[15],1)] ^ m[2];		\
-    m[1] = T_m64[6*256+EXT_BYTE(x[15],2)] ^ m[1];		\
-    m[0] = T_m64[7*256+EXT_BYTE(x[15],3)] ^ m[0];		\
-    m[6] = T_m64[0*256+((r)^0x60^EXT_BYTE(x[12],0))] ^ m[6]; \
-    m[5] = T_m64[1*256+EXT_BYTE(x[12],1)] ^ m[5];		\
-    m[4] = T_m64[2*256+EXT_BYTE(x[12],2)] ^ m[4];		\
-    m[3] = T_m64[3*256+EXT_BYTE(x[12],3)] ^ m[3];		\
-    m[2] = T_m64[4*256+EXT_BYTE(x[13],0)] ^ m[2];		\
-    m[1] = T_m64[5*256+EXT_BYTE(x[13],1)] ^ m[1];		\
-    m[0] = T_m64[6*256+EXT_BYTE(x[13],2)] ^ m[0];		\
-    m[7] = T_m64[7*256+EXT_BYTE(x[13],3)] ^ m[7];		\
-    m[5] = T_m64[0*256+((r)^0x50^EXT_BYTE(x[10],0))] ^ m[5]; \
-    m[4] = T_m64[1*256+EXT_BYTE(x[10],1)] ^ m[4];		\
-    m[3] = T_m64[2*256+EXT_BYTE(x[10],2)] ^ m[3];		\
-    m[2] = T_m64[3*256+EXT_BYTE(x[10],3)] ^ m[2];		\
-    m[1] = T_m64[4*256+EXT_BYTE(x[11],0)] ^ m[1];		\
-    m[0] = T_m64[5*256+EXT_BYTE(x[11],1)] ^ m[0];		\
-    m[7] = T_m64[6*256+EXT_BYTE(x[11],2)] ^ m[7];		\
-    m[6] = T_m64[7*256+EXT_BYTE(x[11],3)] ^ m[6];		\
-    m[4] = T_m64[0*256+((r)^0x40^EXT_BYTE(x[ 8],0))] ^ m[4]; \
-    m[3] = T_m64[1*256+EXT_BYTE(x[ 8],1)] ^ m[3];		\
-    m[2] = T_m64[2*256+EXT_BYTE(x[ 8],2)] ^ m[2];		\
-    m[1] = T_m64[3*256+EXT_BYTE(x[ 8],3)] ^ m[1];		\
-    m[0] = T_m64[4*256+EXT_BYTE(x[ 9],0)] ^ m[0];		\
-    m[7] = T_m64[5*256+EXT_BYTE(x[ 9],1)] ^ m[7];		\
-    m[6] = T_m64[6*256+EXT_BYTE(x[ 9],2)] ^ m[6];		\
-    m[5] = T_m64[7*256+EXT_BYTE(x[ 9],3)] ^ m[5];		\
-    m[3] = T_m64[0*256+((r)^0x30^EXT_BYTE(x[ 6],0))] ^ m[3]; \
-    m[2] = T_m64[1*256+EXT_BYTE(x[ 6],1)] ^ m[2];		\
-    m[1] = T_m64[2*256+EXT_BYTE(x[ 6],2)] ^ m[1];		\
-    m[0] = T_m64[3*256+EXT_BYTE(x[ 6],3)] ^ m[0];		\
-    m[7] = T_m64[4*256+EXT_BYTE(x[ 7],0)] ^ m[7];		\
-    m[6] = T_m64[5*256+EXT_BYTE(x[ 7],1)] ^ m[6];		\
-    m[5] = T_m64[6*256+EXT_BYTE(x[ 7],2)] ^ m[5];		\
-    m[4] = T_m64[7*256+EXT_BYTE(x[ 7],3)] ^ m[4];		\
-    m[2] = T_m64[0*256+((r)^0x20^EXT_BYTE(x[ 4],0))] ^ m[2]; \
-    m[1] = T_m64[1*256+EXT_BYTE(x[ 4],1)] ^ m[1];		\
-    m[0] = T_m64[2*256+EXT_BYTE(x[ 4],2)] ^ m[0];		\
-    m[7] = T_m64[3*256+EXT_BYTE(x[ 4],3)] ^ m[7];		\
-    m[6] = T_m64[4*256+EXT_BYTE(x[ 5],0)] ^ m[6];		\
-    m[5] = T_m64[5*256+EXT_BYTE(x[ 5],1)] ^ m[5];		\
-    m[4] = T_m64[6*256+EXT_BYTE(x[ 5],2)] ^ m[4];		\
-    m[3] = T_m64[7*256+EXT_BYTE(x[ 5],3)] ^ m[3];		\
-    m[1] = T_m64[0*256+((r)^0x10^EXT_BYTE(x[ 2],0))] ^ m[1]; \
-    m[0] = T_m64[1*256+EXT_BYTE(x[ 2],1)] ^ m[0];		\
-    m[7] = T_m64[2*256+EXT_BYTE(x[ 2],2)] ^ m[7];		\
-    m[6] = T_m64[3*256+EXT_BYTE(x[ 2],3)] ^ m[6];		\
-    m[5] = T_m64[4*256+EXT_BYTE(x[ 3],0)] ^ m[5];		\
-    m[4] = T_m64[5*256+EXT_BYTE(x[ 3],1)] ^ m[4];		\
-    m[3] = T_m64[6*256+EXT_BYTE(x[ 3],2)] ^ m[3];		\
-    m[2] = T_m64[7*256+EXT_BYTE(x[ 3],3)] ^ m[2];		\
-  } while (0)
-
-/* compute a round of Q512 */
-#define ROUNDQ512(m_in, m, r) do {					\
-    u64* T_m64 = (u64*)T;						\
-    long long zero;								\
-    long long ff;								\
-    u32* x = (u32*)m_in;						\
-    zero = 0;						\
-    ff   = -1;				\
-									\
-    m_in[0] = (m_in[0]^ff);					\
-    m_in[1] = (m_in[1]^ff);					\
-    m_in[2] = (m_in[2]^ff);					\
-    m_in[3] = (m_in[3]^ff);					\
-    m_in[4] = (m_in[4]^ff);					\
-    m_in[5] = (m_in[5]^ff);					\
-    m_in[6] = (m_in[6]^ff);					\
-    m_in[7] = (m_in[7]^ff);					\
-									\
-    m[7] = T_m64[0*256+EXT_BYTE(x[ 0],0)] ^ zero;		\
-    m[5] = T_m64[1*256+EXT_BYTE(x[ 0],1)] ^ zero;		\
-    m[3] = T_m64[2*256+EXT_BYTE(x[ 0],2)] ^ zero;		\
-    m[1] = T_m64[3*256+EXT_BYTE(x[ 0],3)] ^ zero;		\
-    m[0] = T_m64[4*256+EXT_BYTE(x[ 1],0)] ^ zero;		\
-    m[6] = T_m64[5*256+EXT_BYTE(x[ 1],1)] ^ zero;		\
-    m[4] = T_m64[6*256+EXT_BYTE(x[ 1],2)] ^ zero;		\
-    m[2] = T_m64[7*256+((r)^EXT_BYTE(x[ 1],3))] ^ zero;	\
-									\
-    m[6] = T_m64[0*256+EXT_BYTE(x[14],0)] ^ m[6];		\
-    m[4] = T_m64[1*256+EXT_BYTE(x[14],1)] ^ m[4];		\
-    m[2] = T_m64[2*256+EXT_BYTE(x[14],2)] ^ m[2];		\
-    m[0] = T_m64[3*256+EXT_BYTE(x[14],3)] ^ m[0];		\
-    m[7] = T_m64[4*256+EXT_BYTE(x[15],0)] ^ m[7];		\
-    m[5] = T_m64[5*256+EXT_BYTE(x[15],1)] ^ m[5];		\
-    m[3] = T_m64[6*256+EXT_BYTE(x[15],2)] ^ m[3];		\
-    m[1] = T_m64[7*256+((r)^0x70^EXT_BYTE(x[15],3))] ^ m[1]; \
-									\
-    m[5] = T_m64[0*256+EXT_BYTE(x[12],0)] ^ m[5];		\
-    m[3] = T_m64[1*256+EXT_BYTE(x[12],1)] ^ m[3];		\
-    m[1] = T_m64[2*256+EXT_BYTE(x[12],2)] ^ m[1];		\
-    m[7] = T_m64[3*256+EXT_BYTE(x[12],3)] ^ m[7];		\
-    m[6] = T_m64[4*256+EXT_BYTE(x[13],0)] ^ m[6];		\
-    m[4] = T_m64[5*256+EXT_BYTE(x[13],1)] ^ m[4];		\
-    m[2] = T_m64[6*256+EXT_BYTE(x[13],2)] ^ m[2];		\
-    m[0] = T_m64[7*256+((r)^0x60^EXT_BYTE(x[13],3))] ^ m[0]; \
-									\
-    m[4] = T_m64[0*256+EXT_BYTE(x[10],0)] ^ m[4];		\
-    m[2] = T_m64[1*256+EXT_BYTE(x[10],1)] ^ m[2];		\
-    m[0] = T_m64[2*256+EXT_BYTE(x[10],2)] ^ m[0];		\
-    m[6] = T_m64[3*256+EXT_BYTE(x[10],3)] ^ m[6];		\
-    m[5] = T_m64[4*256+EXT_BYTE(x[11],0)] ^ m[5];		\
-    m[3] = T_m64[5*256+EXT_BYTE(x[11],1)] ^ m[3];		\
-    m[1] = T_m64[6*256+EXT_BYTE(x[11],2)] ^ m[1];		\
-    m[7] = T_m64[7*256+((r)^0x50^EXT_BYTE(x[11],3))] ^ m[7]; \
-									\
-    m[3] = T_m64[0*256+EXT_BYTE(x[ 8],0)] ^ m[3];		\
-    m[1] = T_m64[1*256+EXT_BYTE(x[ 8],1)] ^ m[1];		\
-    m[7] = T_m64[2*256+EXT_BYTE(x[ 8],2)] ^ m[7];		\
-    m[5] = T_m64[3*256+EXT_BYTE(x[ 8],3)] ^ m[5];		\
-    m[4] = T_m64[4*256+EXT_BYTE(x[ 9],0)] ^ m[4];		\
-    m[2] = T_m64[5*256+EXT_BYTE(x[ 9],1)] ^ m[2];		\
-    m[0] = T_m64[6*256+EXT_BYTE(x[ 9],2)] ^ m[0];		\
-    m[6] = T_m64[7*256+((r)^0x40^EXT_BYTE(x[ 9],3))] ^ m[6]; \
-									\
-    m[2] = T_m64[0*256+EXT_BYTE(x[ 6],0)] ^ m[2];		\
-    m[0] = T_m64[1*256+EXT_BYTE(x[ 6],1)] ^ m[0];		\
-    m[6] = T_m64[2*256+EXT_BYTE(x[ 6],2)] ^ m[6];		\
-    m[4] = T_m64[3*256+EXT_BYTE(x[ 6],3)] ^ m[4];		\
-    m[3] = T_m64[4*256+EXT_BYTE(x[ 7],0)] ^ m[3];		\
-    m[1] = T_m64[5*256+EXT_BYTE(x[ 7],1)] ^ m[1];		\
-    m[7] = T_m64[6*256+EXT_BYTE(x[ 7],2)] ^ m[7];		\
-    m[5] = T_m64[7*256+((r)^0x30^EXT_BYTE(x[ 7],3))] ^ m[5]; \
-									\
-    m[1] = T_m64[0*256+EXT_BYTE(x[ 4],0)] ^ m[1];		\
-    m[7] = T_m64[1*256+EXT_BYTE(x[ 4],1)] ^ m[7];		\
-    m[5] = T_m64[2*256+EXT_BYTE(x[ 4],2)] ^ m[5];		\
-    m[3] = T_m64[3*256+EXT_BYTE(x[ 4],3)] ^ m[3];		\
-    m[2] = T_m64[4*256+EXT_BYTE(x[ 5],0)] ^ m[2];		\
-    m[0] = T_m64[5*256+EXT_BYTE(x[ 5],1)] ^ m[0];		\
-    m[6] = T_m64[6*256+EXT_BYTE(x[ 5],2)] ^ m[6];		\
-    m[4] = T_m64[7*256+((r)^0x20^EXT_BYTE(x[ 5],3))] ^ m[4]; \
-									\
-    m[0] = T_m64[0*256+EXT_BYTE(x[ 2],0)] ^ m[0];		\
-    m[6] = T_m64[1*256+EXT_BYTE(x[ 2],1)] ^ m[6];		\
-    m[4] = T_m64[2*256+EXT_BYTE(x[ 2],2)] ^ m[4];		\
-    m[2] = T_m64[3*256+EXT_BYTE(x[ 2],3)] ^ m[2];		\
-    m[1] = T_m64[4*256+EXT_BYTE(x[ 3],0)] ^ m[1];		\
-    m[7] = T_m64[5*256+EXT_BYTE(x[ 3],1)] ^ m[7];		\
-    m[5] = T_m64[6*256+EXT_BYTE(x[ 3],2)] ^ m[5];		\
-    m[3] = T_m64[7*256+((r)^0x10^EXT_BYTE(x[ 3],3))] ^ m[3]; \
-  } while (0)
-
-
-
-typedef struct {
-    // hashState *ctx;        // Pointer to the hash state
-    const u8 *msg_block;   // Pointer to the current message block
-    long long *resultBlock ;
-    pthread_t thread_id;        // Thread ID
-    // ... any other arguments needed for processing ...
-} ThreadArgs;
 
 // /* apply the output transformation after identifying variant */
 // void OutputTransformation(u32 *output) {
 //     OutputTransformation512(output);
 // }
 
-// size is in bits
-int Transform512BitSliced(uint8_t * outputb, uint8_t * inputb, size_t size) {
-    // word_t input_space[BLOCK_SIZE];
-    // // word_t rk[11][BLOCK_SIZE];
-
-    // size = size / 8;
-
-    // memset(outputb,0,size);
-    // word_t * state = (word_t *)outputb;
-
-    // // bs_expand_key(rk, key);
-    // while (size > 0)
-    // {
-    //     if (size < BS_BLOCK_SIZE)
-    //     {
-    //         memset(input_space,0,BS_BLOCK_SIZE);
-    //         memmove(input_space, inputb, size);
-    //         bs_cipher(input_space);
-    //         memmove(outputb, input_space, size);
-    //         size = 0;
-    //         state += size;
-    //     }
-    //     else
-    //     {
-    //         memmove(state,inputb,BS_BLOCK_SIZE);
-    //         bs_cipher(state);
-    //         size -= BS_BLOCK_SIZE;
-    //         state += BS_BLOCK_SIZE;
-    //     }
-    // }
-}
-
 
 /* digest part of a message in short variants */
 // total msglen in bytes
 int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
-  int i;
-  long long m64_m[COLS512], *m64_h, m64_hm[COLS512], tmp[COLS512];
+
   u64 *msg_64;
   int offset = 0;
-
 
     word_t input_space[BLOCK_SIZE]; // gets bitsliced soon after copy
     // word_t bs_input_space[BLOCK_SIZE];
@@ -260,22 +53,28 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
     {
         if (size_left < BS_BLOCK_SIZE)
         {
-            // memset(input_space,0,BS_BLOCK_SIZE);
-            memmove(input_space, msg +  offset, BS_BLOCK_SIZE);
-            bs_transpose(input_space);
-            bs_cipher(bs_state, input_space); // output state is in bs_state
-            // memmove(outputb, input_space, size);
-            offset += BS_BLOCK_SIZE;
-            size_left -= BS_BLOCK_SIZE;
-        }
-        else
-        {
-            memmove(input_space, msg +  offset, BS_BLOCK_SIZE);
+            memcpy(input_space, msg +  offset, BS_BLOCK_SIZE);
             bs_transpose(input_space);
             bs_cipher(bs_state, input_space);
             offset += BS_BLOCK_SIZE;
             size_left -= BS_BLOCK_SIZE;
             break;
+        }
+        else
+        {
+            // memset(input_space,0,BS_BLOCK_SIZE);
+            memcpy(input_space, msg +  offset, BS_BLOCK_SIZE);
+
+            /////////only for test, remove///////////
+
+            // bs_transpose(msg);
+            // bs_transpose_rev(msg);
+            ////////////////////
+            bs_transpose(input_space);
+            bs_cipher(bs_state, input_space); // output state is in bs_state
+            // memmove(outputb, input_space, size);
+            offset += BS_BLOCK_SIZE;
+            size_left -= BS_BLOCK_SIZE;
         }
     }
 
@@ -286,72 +85,6 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
   // return 0;
 }
 
-
-/* digest part of a message in short variants */
-// msglen in bits
-int Transform512(u32 *outputTransformation, const u8 *msg, int msglen) {
-  int i;
-  long long m64_m[COLS512], *m64_h, m64_hm[COLS512], tmp[COLS512];
-  u64 *msg_64;
-
-  // Determine the number of blocks
-  int num_blocks = msglen / SIZE512;
-  //  pthread_t threads[num_blocks];
-  // ThreadArgs threads_args[num_blocks];
-
-  // bs_generate_roundc_matrix();
-
-  m64_h = (uint64_t*)outputTransformation;
-  while (msglen >= SIZE512) {
-    msg_64 = (u64*)msg;
-
-    for (i = 0; i < COLS512; i++) {
-      m64_m[i] = msg_64[i];
-      m64_hm[i] = m64_h[i] ^ m64_m[i];
-    }
-
-    ROUNDP512(m64_hm, tmp, 0);
-    ROUNDP512(tmp, m64_hm, 1);
-    ROUNDP512(m64_hm, tmp, 2);
-    ROUNDP512(tmp, m64_hm, 3);
-    ROUNDP512(m64_hm, tmp, 4);
-    ROUNDP512(tmp, m64_hm, 5);
-    ROUNDP512(m64_hm, tmp, 6);
-    ROUNDP512(tmp, m64_hm, 7);
-    ROUNDP512(m64_hm, tmp, 8);
-    ROUNDP512(tmp, m64_hm, 9);
-    
-
-    ROUNDQ512(m64_m, tmp, 0);
-    ROUNDQ512(tmp, m64_m, 1);
-    ROUNDQ512(m64_m, tmp, 2);
-    ROUNDQ512(tmp, m64_m, 3);
-    ROUNDQ512(m64_m, tmp, 4);
-    ROUNDQ512(tmp, m64_m, 5);
-    ROUNDQ512(m64_m, tmp, 6);
-    ROUNDQ512(tmp, m64_m, 7);
-    ROUNDQ512(m64_m, tmp, 8);
-    ROUNDQ512(tmp, m64_m, 9);
-
-    
-    for (i = 0; i < COLS512; i++) {
-      m64_h[i] = m64_h[i] ^ m64_m [i];
-      m64_h[i] = m64_h[i] ^ m64_hm[i];
-    }
-
-    msg += SIZE512;
-    msglen -= SIZE512;   
-
-  }
-//  OutputTransformation(outputTransformation);
-  return 0;
-}
-
-
-/* digest part of a message after identifying variant */
-int Transform(u32 *outputTransformation, const u8 *msg, int msglen) {
-    return Transform512(outputTransformation, msg, msglen);
-}
 
 /* apply the output transformation of short variants */
 void bs_OutputTransformation512(word_t *state) {
@@ -370,7 +103,7 @@ void bs_OutputTransformation512(word_t *state) {
         bs_m64_hm[word_index] = state[word_index] ;
     }
 
-    for (word_t round = 1; round < 10; round++)
+    for (word_t round = 0; round < 10; round++)
     {
         bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
         // XOR with round constants
@@ -379,9 +112,9 @@ void bs_OutputTransformation512(word_t *state) {
         }
 
         // P 
-        bs_apply_sbox(bs_m64_hm);
-        bs_shiftrows_p(bs_m64_hm);
-        bs_mixbytes(bs_m64_hm);
+     //   bs_apply_sbox(bs_m64_hm);
+     //   bs_shiftrows_p(bs_m64_hm);
+      //  bs_mixbytes(bs_m64_hm);
 
 
         for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
@@ -419,11 +152,10 @@ HashReturn Init(hashState* ctx,
 /* update state with databitlen bits of input */
 HashReturn Update(hashState* ctx,
 		  const BitSequence* input,
-		  DataLength databitlen, u32* transformedOutput) {
+		  DataLength databitlen, word_t* transformedOutput) {
   int index = 0;
   const int msglen = (int)(databitlen/8);
   int newMsgLen = msglen;
-  int rem = (int)(databitlen%8);
   uchar* byteInput = input;
 
   ctx->block_counter = msglen / ctx->statesize;
@@ -457,6 +189,8 @@ HashReturn Update(hashState* ctx,
 
   int lengthPad = LENGTHFIELDLEN;
   int lengthPadIndex = 1;
+
+  const int completeBlockCounter =  ctx->block_counter; // ctx->block_counter gets modiefied below so storing in a  temp var here
   while (lengthPadIndex <= LENGTHFIELDLEN) {
     byteInput[newMsgLen - lengthPadIndex] = (u8)ctx->block_counter;
     lengthPadIndex++;
@@ -464,21 +198,22 @@ HashReturn Update(hashState* ctx,
   }
   /***********************START OF MESSAGE REPLICATION?TRANSFORMATION JUST FOR TESTING*/
 
-  int msgLenInBytes = newMsgLen/8;
-  int NO_OF_PARALLEL_INPUTS = 64;
-  uchar* transformedInput = calloc(msgLenInBytes * NO_OF_PARALLEL_INPUTS, 0);
+  int msgLenWithPadding = completeBlockCounter * ctx->statesize;
+  const int NO_OF_PARALLEL_INPUTS = WORD_SIZE;
+
+  uchar* transformedInput = malloc(msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
+  memset(transformedInput, 0, msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
+  
   for (int transformIndex = 0; transformIndex < NO_OF_PARALLEL_INPUTS; transformIndex++) {
     // first block of all the parallel inputs are placed first and then the second blocks for all the parallel inputs and so on
-    for (int blockIndex = 0; blockIndex < ctx->block_counter; blockIndex++) {
-      // ctx->statesize should be equal to 64 or msgLenInBytes/ ctx->block_counter
-      memcpy(transformedInput + ((transformIndex * msgLenInBytes) + (ctx->statesize * blockIndex)), input + (ctx->statesize * blockIndex) ,  ctx->statesize);
+    for (int blockIndex = 0; blockIndex < completeBlockCounter; blockIndex++) {
+      // ctx->statesize should be equal to 64 or msgLenWithPadding/ ctx->block_counter
+      memcpy(transformedInput + ((transformIndex * msgLenWithPadding) + (ctx->statesize * blockIndex)), input + (ctx->statesize * blockIndex) ,  ctx->statesize);
     }
   }
 
- // uchar* combinedTransformedOutput = calloc(ctx->statesize * NO_OF_PARALLEL_INPUTS, 0);
- word_t combinedTransformedOutput[BLOCK_SIZE];
 
-  Transform512Combined(combinedTransformedOutput, transformedInput, msgLenInBytes * NO_OF_PARALLEL_INPUTS);
+ Transform512Combined(transformedOutput, transformedInput, msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
 
 /*****************************/
   // prev call below
@@ -519,20 +254,23 @@ HashReturn Hash(int hashbitlen,
   /* initialise */
   if ((ret = Init(&context, hashbitlen)) != SUCCESS)
     return ret;
-    
-  u32* transformedOutput = calloc(context.statesize,1);
+
+  word_t *combinedTransformedOutput = malloc(context.statesize * WORD_SIZE);// [64* BLOCK_SIZE];
+  memset(combinedTransformedOutput, 0, context.statesize * WORD_SIZE);
+
+  u32* combinedTransformedOutput32 = combinedTransformedOutput; // temp cast
   /* allocate memory for state and data buffer */
-  transformedOutput[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
+  combinedTransformedOutput32[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
 
   /* process message */
-  if ((ret = Update(&context, data, databitlen, transformedOutput)) != SUCCESS)
+  if ((ret = Update(&context, data, databitlen, combinedTransformedOutput)) != SUCCESS)
     return ret;
 
   /* finalise */
-  ret = Final(&context, transformedOutput, hashval);
+  ret = Final(&context, combinedTransformedOutput, hashval);
 
 
-  free(transformedOutput);
+  free(combinedTransformedOutput); 
 
   return ret;
 }
@@ -592,10 +330,11 @@ int main(int argc, char **argv) {
     fread(hostData, sizeof(unsigned char), dataSize, file);
     fclose(file);
 
-    const char* message = "my message gdfjhghjkfdhgjklfdshgjklfdhgjkfdshkfjsdhgjfdlshgjkfdsghfjdklhgjfkdlghfjdkslhgfdjksgsdfhj    dsdscxcd3232322cc";
+    const char* message = "my message";
     size_t size = strlen(message);
 
     unsigned char* data = (unsigned char*)malloc(size + (SIZE512 * 2));
+    memset(data, 0, size + (SIZE512 * 2));
     memcpy(data, message, size);
     crypto_hash(ct, data, size);
 

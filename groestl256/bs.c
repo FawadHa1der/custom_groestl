@@ -375,7 +375,24 @@ void bs_transpose(word_t * blocks)
     word_t transpose[BLOCK_SIZE];
     memset(transpose, 0, sizeof(transpose));
     bs_transpose_dst(transpose,blocks);
-    memmove(blocks,transpose,sizeof(transpose));
+   // memmove(blocks,transpose,sizeof(transpose));
+
+   // TODO : cleanup
+
+    // note to do rev transpose and make sure we get the same result
+    word_t transpose_rev[BLOCK_SIZE];
+    memset(transpose_rev, 0, sizeof(transpose_rev));
+    memcpy(transpose_rev, transpose, sizeof(transpose_rev));
+    bs_transpose_rev(transpose_rev);
+
+    for (int i = 0; i < BLOCK_SIZE; i++){
+        if (blocks[i] != transpose_rev[i]){
+            printf("transpose[%d] != transpose_rev[%d]\n", i, i);
+        }
+    }
+
+   memmove(blocks,transpose,sizeof(transpose));
+
 }
 
 void bs_transpose_dst(word_t * transpose, word_t * blocks)
@@ -857,7 +874,7 @@ void bs_shiftrows_p(word_t * B)
 }
 
 
-void bs_shiftrows_rev(word_t * B)
+void bs_shiftrows_rev_p(word_t * B)
 {
     word_t Bp_space[BLOCK_SIZE];
     word_t * Bp = Bp_space;
@@ -1023,29 +1040,58 @@ void bs_gf_multiply(word_t * B, word_t * A, int C)
     // B is word_t[8] as input. 
     // A is word_t[8] for the result
     // C is the constant multiplier
+
+
+    // lets create a local copy of B
+    word_t B_space[8];
+    B_space[0] = B[0];
+    B_space[1] = B[1];
+    B_space[2] = B[2];
+    B_space[3] = B[3];
+    B_space[4] = B[4];
+    B_space[5] = B[5];
+    B_space[6] = B[6];
+    B_space[7] = B[7];
+
     int i;
     for(i=0; i<8; i++)
     {
         A[i] = 0;
     }
-
+    int b_index = 0;
+    int j = 0;
     for(i=0; i<8; i++)
     {
         if(C & 1)
         {
-            for (int j = i, b_index = 0; j < 8; j++, b_index++)
+            // for (j = i, b_index = 0; j < 8; j++, b_index++)
+            // {
+            //    A[j] ^= B[b_index];
+            // }
+            for (j = 0; j < 8; j++)
             {
-               A[j] ^= B[b_index];
-
+                A[j] ^= B_space[j];
             }
         }
+        else if (C == 0){
+            break;
+        }
         C >>= 1;
-        // overflow XOR with 0x1b translated to 0,1,3,4 indices.
-        A[0] ^=  A[7];
-        A[1] ^= A[7];
-        // there is no A[2] assignment here
-        A[3] ^= A[7];
-        A[4] ^= A[7];
+
+        // shift B_space to the left by 1
+        word_t MSB = B_space[7];
+        for (j = 7; j > 0; j--)
+        {
+            B_space[j] = B_space[j -1 ];
+        }
+        B_space[0] = 0;
+        
+        // if MSB is 1, then we need to XOR with 0x1b
+        B_space[0] ^= MSB;
+        B_space[1] ^= MSB;
+        B_space[3] ^= MSB;
+        B_space[4] ^= MSB;
+
         //B += WORD_SIZE;
     }
 }
@@ -1662,10 +1708,6 @@ void bs_generate_roundc_matrix ( word_t * bs_p_round_constant, word_t* bs_q_roun
     // word_t round = 0; // goes from 0 - 9
     word_t round_constant = round * 0x0101010101010101ULL;
 
-    for (round = 0 ; round < 10; round++) {
-        round_constant = round * 0x0101010101010101ULL;
-        // printf("Round constant: %d\n", round);
-        // print_word_in_hex_and_binary(round_constant);
 
         for (word_t i = 0; i < BLOCK_SIZE; i+= WORDS_PER_BLOCK)
         {
@@ -1769,6 +1811,8 @@ void bs_generate_roundc_matrix ( word_t * bs_p_round_constant, word_t* bs_q_roun
             }
         }
 
+         
+
         // for (int i = 0; i < BLOCK_SIZE; i++) {
         //     if (p_round_constant[i] != 0x0000000000000000ULL) {
 
@@ -1783,141 +1827,50 @@ void bs_generate_roundc_matrix ( word_t * bs_p_round_constant, word_t* bs_q_roun
         //         print_word_in_hex_and_binary(q_round_constant[i]);
         //     }
         // }
-    }
-
 }
 
 void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
 {
     word_t round;
-    // bs_transpose(input);
-
-/**
-  // Determine the number of blocks
-  int num_blocks = msglen / SIZE512;
-  //  pthread_t threads[num_blocks];
-  // ThreadArgs threads_args[num_blocks];
-
-  bs_generate_roundc_matrix();
-
-  m64_h = (uint64_t*)outputTransformation;
-  while (msglen >= SIZE512) {
-    msg_64 = (u64*)msg;
-
-    for (i = 0; i < COLS512; i++) {
-      m64_m[i] = msg_64[i];
-      m64_hm[i] = m64_h[i] ^ m64_m[i];
-    }
-
-    ROUNDP512(m64_hm, tmp, 0);
-    ROUNDP512(tmp, m64_hm, 1);
-    ROUNDP512(m64_hm, tmp, 2);
-    ROUNDP512(tmp, m64_hm, 3);
-    ROUNDP512(m64_hm, tmp, 4);
-    ROUNDP512(tmp, m64_hm, 5);
-    ROUNDP512(m64_hm, tmp, 6);
-    ROUNDP512(tmp, m64_hm, 7);
-    ROUNDP512(m64_hm, tmp, 8);
-    ROUNDP512(tmp, m64_hm, 9);
-    
-
-    ROUNDQ512(m64_m, tmp, 0);
-    ROUNDQ512(tmp, m64_m, 1);
-    ROUNDQ512(m64_m, tmp, 2);
-    ROUNDQ512(tmp, m64_m, 3);
-    ROUNDQ512(m64_m, tmp, 4);
-    ROUNDQ512(tmp, m64_m, 5);
-    ROUNDQ512(m64_m, tmp, 6);
-    ROUNDQ512(tmp, m64_m, 7);
-    ROUNDQ512(m64_m, tmp, 8);
-    ROUNDQ512(tmp, m64_m, 9);
-
-    
-    for (i = 0; i < COLS512; i++) {
-      m64_h[i] = m64_h[i] ^ m64_m [i];
-      m64_h[i] = m64_h[i] ^ m64_hm[i];
-    }
-
-    msg += SIZE512;
-    msglen -= SIZE512;   
-
-  }
- * */
     word_t bs_p_round_constant[BLOCK_SIZE];
     word_t bs_q_round_constant[BLOCK_SIZE];
+    memset(bs_p_round_constant, 0, sizeof(bs_p_round_constant));
+    memset(bs_q_round_constant, 0, sizeof(bs_q_round_constant));
 
     word_t bs_m64_m[BLOCK_SIZE];
     word_t bs_m64_hm[BLOCK_SIZE];
-
+    memset(bs_m64_m, 0, sizeof(bs_m64_m));
+    memset(bs_m64_hm, 0, sizeof(bs_m64_hm));
 
     for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
         bs_m64_m[word_index] = input[word_index];
         bs_m64_hm[word_index] = state[word_index] ^ bs_m64_m[word_index];
     }
 
-    for (round = 1; round < 10; round++)
+    for (round = 0; round < 10; round++)
     {
         bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
         // XOR with round constants
         for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
-            bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
+            //bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
             bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
         }
 
         // P 
-        bs_apply_sbox(bs_m64_hm);
-        bs_shiftrows_p(bs_m64_hm);
-        bs_mixbytes(bs_m64_hm);
+        //bs_apply_sbox(bs_m64_hm);
+        // bs_shiftrows_p(bs_m64_hm);
+      //  bs_mixbytes(bs_m64_hm);
 
         // Q
-        bs_apply_sbox(bs_m64_m);
-        bs_shiftrows_q(bs_m64_m);
-        bs_mixbytes(bs_m64_m);
+        //bs_apply_sbox(bs_m64_m);
+        // bs_shiftrows_q(bs_m64_m);
+    //    bs_mixbytes(bs_m64_m);
 
         for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
             state[word_index] = state[word_index] ^ bs_m64_m [word_index];
             state[word_index] = state[word_index] ^ bs_m64_hm[word_index];
         }
     }
-    // bs_addroundkey(state,rk[10]);
-    // bs_transpose_rev(state);
-}
-
-// void RND512P(uint32_t *x32, uint32_t r) {
-//   uint32_t i;
-
-//   x32[ 0] ^= 0x30201000^r;
-//   x32[ 1] ^= 0x70605040^r;
-
-//   subBytes((uint8_t*)x32);
-
-//   for(i=1;i<8;i++)
-//   {
-//     rotate_line_left(x32,i, i);
-//   }
-						
-//   mixBytes(x32);
-// }
-
-
-void bs_cipher_rev(word_t state[BLOCK_SIZE], word_t (* rk)[BLOCK_SIZE])
-{
-    int round = 0;
-    bs_transpose(state);
-
-    bs_addroundkey(state,round);
-    for (round = 9; round > 0; round--)
-    {
-        bs_shiftrows_rev(state);
-        bs_apply_sbox_rev(state);
-        bs_addroundkey(state,round);
-        bs_mixcolumns_rev(state);
-    }
-    bs_shiftrows_rev(state);
-    bs_apply_sbox_rev(state);
-    bs_addroundkey(state,round);
-
-    bs_transpose_rev(state);
 }
 
 

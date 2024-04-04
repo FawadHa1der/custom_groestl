@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "brg_endian.h"
+#include "bs.h"
 
 
 
@@ -74,7 +75,9 @@ typedef struct {
 } hashState;
 
 HashReturn Init(hashState*, int);
-HashReturn Update(hashState*, const BitSequence*, DataLength, u32*);
+HashReturn Update(hashState* ctx,
+		  const BitSequence* input,
+		  DataLength databitlen, word_t* transformedOutput);
 HashReturn Final(hashState*, u32*  ,BitSequence*);
 HashReturn Hash(int, const BitSequence*, DataLength, BitSequence*);
 /* NIST API end   */
