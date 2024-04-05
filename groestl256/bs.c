@@ -1852,25 +1852,27 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
         bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
         // XOR with round constants
         for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
-            //bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
+            bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
             bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
         }
 
         // P 
-        //bs_apply_sbox(bs_m64_hm);
-        // bs_shiftrows_p(bs_m64_hm);
-      //  bs_mixbytes(bs_m64_hm);
+      //  bs_apply_sbox(bs_m64_hm);
+       // bs_shiftrows_p(bs_m64_hm);
+    //    bs_mixbytes(bs_m64_hm);
 
         // Q
         //bs_apply_sbox(bs_m64_m);
-        // bs_shiftrows_q(bs_m64_m);
-    //    bs_mixbytes(bs_m64_m);
+       // bs_shiftrows_q(bs_m64_m);
+        // bs_mixbytes(bs_m64_m);
 
-        for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
-            state[word_index] = state[word_index] ^ bs_m64_m [word_index];
-            state[word_index] = state[word_index] ^ bs_m64_hm[word_index];
-        }
     }
+
+    for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+        // state[word_index] = state[word_index] ^ bs_m64_m [word_index];
+        state[word_index] ^= bs_m64_m [word_index] ^ bs_m64_hm[word_index];
+    }
+
 }
 
 

@@ -112,15 +112,16 @@ void bs_OutputTransformation512(word_t *state) {
         }
 
         // P 
-     //   bs_apply_sbox(bs_m64_hm);
-     //   bs_shiftrows_p(bs_m64_hm);
-      //  bs_mixbytes(bs_m64_hm);
+     //  bs_apply_sbox(bs_m64_hm);
+     //  bs_shiftrows_p(bs_m64_hm);
+   //    bs_mixbytes(bs_m64_hm);
 
 
-        for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
-            state[word_index] = state[word_index] ^ bs_m64_hm[word_index];
-        }
     }
+    for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+      state[word_index] = state[word_index] ^ bs_m64_hm[word_index];
+    }
+
 }
 
 /* initialise context */
