@@ -54,7 +54,7 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
         if (size_left < BS_BLOCK_SIZE)
         {
             memcpy(input_space, msg +  offset, BS_BLOCK_SIZE);
-            bs_transpose(input_space);
+          //  bs_transpose(input_space);
             bs_cipher(bs_state, input_space);
             offset += BS_BLOCK_SIZE;
             size_left -= BS_BLOCK_SIZE;
@@ -62,7 +62,7 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
         }
         else
         {
-            // memset(input_space,0,BS_BLOCK_SIZE);
+            memset(input_space,0,BS_BLOCK_SIZE);
             memcpy(input_space, msg +  offset, BS_BLOCK_SIZE);
 
             /////////only for test, remove///////////
@@ -70,7 +70,7 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
             // bs_transpose(msg);
             // bs_transpose_rev(msg);
             ////////////////////
-            bs_transpose(input_space);
+           // bs_transpose(input_space);
             bs_cipher(bs_state, input_space); // output state is in bs_state
             // memmove(outputb, input_space, size);
             offset += BS_BLOCK_SIZE;
@@ -79,8 +79,8 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
     }
 
 
-  bs_OutputTransformation512(bs_state);
-  bs_transpose_rev(bs_state);
+//  bs_OutputTransformation512(bs_state);
+ // bs_transpose_rev(bs_state);
 
   // return 0;
 }
@@ -93,6 +93,8 @@ void bs_OutputTransformation512(word_t *state) {
 
     word_t bs_p_round_constant[BLOCK_SIZE];
     word_t bs_q_round_constant[BLOCK_SIZE];
+
+    memset(bs_p_round_constant, 0, BLOCK_SIZE);
 
     // word_t bs_m64_m[BLOCK_SIZE];
     word_t bs_m64_hm[BLOCK_SIZE];
@@ -204,6 +206,8 @@ HashReturn Update(hashState* ctx,
 
   uchar* transformedInput = malloc(msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
   memset(transformedInput, 0, msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
+
+  u32* combinedTransformedOutput32 =transformedOutput;
   
   for (int transformIndex = 0; transformIndex < NO_OF_PARALLEL_INPUTS; transformIndex++) {
     // first block of all the parallel inputs are placed first and then the second blocks for all the parallel inputs and so on
@@ -211,6 +215,9 @@ HashReturn Update(hashState* ctx,
       // ctx->statesize should be equal to 64 or msgLenWithPadding/ ctx->block_counter
       memcpy(transformedInput + ((transformIndex * msgLenWithPadding) + (ctx->statesize * blockIndex)), input + (ctx->statesize * blockIndex) ,  ctx->statesize);
     }
+      combinedTransformedOutput32 += ctx->statesize; // temp cast
+      combinedTransformedOutput32[2*ctx->columns-1] = U32BIG((u32)ctx->hashbitlen);
+
   }
 
 

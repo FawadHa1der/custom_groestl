@@ -1700,10 +1700,41 @@ unsigned char GMul(unsigned char a, unsigned char b) { // Galois Field (256) Mul
 
 #define P_CONSTANT_FIRST_ROW 0x7060504030201000ULL
 #define Q_CONSTANT_LAST_ROW 0x8f9fafbfcfdfefffULL
-void bs_generate_roundc_matrix ( word_t * bs_p_round_constant, word_t* bs_q_round_constant, word_t round){
 
-    word_t q_round_constant[BLOCK_SIZE];
-    word_t p_round_constant[BLOCK_SIZE];
+// for BS_BLOCKSIZE, this is non bitsliced
+void generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_constant, word_t round){
+
+    // word_t round = 0; // goes from 0 - 9
+    word_t round_constant = round * 0x0101010101010101ULL;
+
+        for (word_t i = 0; i < BLOCK_SIZE; i+= WORDS_PER_BLOCK)
+        {
+            // assuming 8 for now
+            p_round_constant[i + 0] = P_CONSTANT_FIRST_ROW ^ round_constant;
+            p_round_constant[i + 1] = 0x0000000000000000ULL;
+            p_round_constant[i + 2] = 0x0000000000000000ULL;
+            p_round_constant[i + 3] = 0x0000000000000000ULL;
+            p_round_constant[i + 4] = 0x0000000000000000ULL;
+            p_round_constant[i + 5] = 0x0000000000000000ULL;
+            p_round_constant[i + 6] = 0x0000000000000000ULL;
+            p_round_constant[i + 7] = 0x0000000000000000ULL;
+
+            q_round_constant[i + 0] = 0xffffffffffffffffULL;
+            q_round_constant[i + 1] = 0xffffffffffffffffULL;
+            q_round_constant[i + 2] = 0xffffffffffffffffULL;
+            q_round_constant[i + 3] = 0xffffffffffffffffULL;
+            q_round_constant[i + 4] = 0xffffffffffffffffULL;
+            q_round_constant[i + 5] = 0xffffffffffffffffULL;
+            q_round_constant[i + 6] = 0xffffffffffffffffULL;
+            q_round_constant[i + 7] = round_constant ^ Q_CONSTANT_LAST_ROW;
+
+        }
+
+}
+void bs_generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_constant, word_t round){
+
+    word_t bs_q_round_constant[BLOCK_SIZE];
+    word_t bs_p_round_constant[BLOCK_SIZE];
 
     // word_t round = 0; // goes from 0 - 9
     word_t round_constant = round * 0x0101010101010101ULL;
@@ -1831,11 +1862,17 @@ void bs_generate_roundc_matrix ( word_t * bs_p_round_constant, word_t* bs_q_roun
 
 void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
 {
-    word_t round;
+    word_t round = 0;
     word_t bs_p_round_constant[BLOCK_SIZE];
     word_t bs_q_round_constant[BLOCK_SIZE];
     memset(bs_p_round_constant, 0, sizeof(bs_p_round_constant));
     memset(bs_q_round_constant, 0, sizeof(bs_q_round_constant));
+
+    word_t p_round_constant[BLOCK_SIZE];
+    word_t q_round_constant[BLOCK_SIZE];
+    memset(p_round_constant, 0, sizeof(p_round_constant));
+    memset(q_round_constant, 0, sizeof(q_round_constant));
+
 
     word_t bs_m64_m[BLOCK_SIZE];
     word_t bs_m64_hm[BLOCK_SIZE];
@@ -1849,28 +1886,33 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
 
     for (round = 0; round < 10; round++)
     {
-        bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
+        // bit sliced
+        // bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
+
+        // non bit sliced
+        generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
         // XOR with round constants
         for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
             bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
-            bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
+          //  bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
         }
 
         // P 
-      //  bs_apply_sbox(bs_m64_hm);
-       // bs_shiftrows_p(bs_m64_hm);
+    //    bs_apply_sbox(bs_m64_hm);
+    //    bs_shiftrows_p(bs_m64_hm);
     //    bs_mixbytes(bs_m64_hm);
 
         // Q
-        //bs_apply_sbox(bs_m64_m);
-       // bs_shiftrows_q(bs_m64_m);
+        // bs_apply_sbox(bs_m64_m);
+    //    bs_shiftrows_q(bs_m64_m);
         // bs_mixbytes(bs_m64_m);
 
+    
     }
 
     for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
-        // state[word_index] = state[word_index] ^ bs_m64_m [word_index];
-        state[word_index] ^= bs_m64_m [word_index] ^ bs_m64_hm[word_index];
+        state[word_index] = state[word_index] ^ bs_m64_m [word_index];
+        state[word_index] = state [word_index] ^ bs_m64_hm[word_index];
     }
 
 }
