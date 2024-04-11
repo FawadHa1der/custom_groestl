@@ -54,7 +54,7 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
         if (size_left < BS_BLOCK_SIZE)
         {
             memcpy(input_space, msg +  offset, BS_BLOCK_SIZE);
-          //  bs_transpose(input_space);
+           bs_transpose(input_space);
             bs_cipher(bs_state, input_space);
             offset += BS_BLOCK_SIZE;
             size_left -= BS_BLOCK_SIZE;
@@ -70,7 +70,7 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
             // bs_transpose(msg);
             // bs_transpose_rev(msg);
             ////////////////////
-           // bs_transpose(input_space);
+           bs_transpose(input_space);
             bs_cipher(bs_state, input_space); // output state is in bs_state
             // memmove(outputb, input_space, size);
             offset += BS_BLOCK_SIZE;
@@ -79,8 +79,8 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
     }
 
 
-//  bs_OutputTransformation512(bs_state);
- // bs_transpose_rev(bs_state);
+ bs_OutputTransformation512(bs_state);
+ bs_transpose_rev(bs_state);
 
   // return 0;
 }
@@ -114,9 +114,9 @@ void bs_OutputTransformation512(word_t *state) {
         }
 
         // P 
-     //  bs_apply_sbox(bs_m64_hm);
-     //  bs_shiftrows_p(bs_m64_hm);
-   //    bs_mixbytes(bs_m64_hm);
+      bs_apply_sbox(bs_m64_hm);
+      bs_shiftrows_p(bs_m64_hm);
+      bs_mixbytes(bs_m64_hm);
 
 
     }
@@ -200,6 +200,8 @@ HashReturn Update(hashState* ctx,
     ctx->block_counter >>= 8;
   }
   /***********************START OF MESSAGE REPLICATION?TRANSFORMATION JUST FOR TESTING*/
+  printf("\n early early Input: \n");
+  printArray(input);
 
   int msgLenWithPadding = completeBlockCounter * ctx->statesize;
   const int NO_OF_PARALLEL_INPUTS = WORD_SIZE;
@@ -215,11 +217,13 @@ HashReturn Update(hashState* ctx,
       // ctx->statesize should be equal to 64 or msgLenWithPadding/ ctx->block_counter
       memcpy(transformedInput + ((transformIndex * msgLenWithPadding) + (ctx->statesize * blockIndex)), input + (ctx->statesize * blockIndex) ,  ctx->statesize);
     }
-      combinedTransformedOutput32 += ctx->statesize; // temp cast
-      combinedTransformedOutput32[2*ctx->columns-1] = U32BIG((u32)ctx->hashbitlen);
+      // combinedTransformedOutput32 += ctx->statesize; // temp cast
+      // combinedTransformedOutput32[2*ctx->columns-1] = U32BIG((u32)ctx->hashbitlen);
 
   }
 
+  printf("\n Input after replication: \n");
+  printArray(transformedInput);
 
  Transform512Combined(transformedOutput, transformedInput, msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
 
@@ -228,6 +232,18 @@ HashReturn Update(hashState* ctx,
   // Transform(transformedOutput, input, newMsgLen);
   return SUCCESS;
 }
+
+// void printArray(word_t* array) {
+//     int i;
+//     printf("[");
+//     for (i = 0; i < BLOCK_SIZE; i++) {
+//         printf("%u", array[i]);
+//         if (i < BLOCK_SIZE - 1) {
+//             printf(", ");
+//         }
+//     }
+//     printf("]\n");
+// }
 
 
 /* finalise: process remaining data (including padding), perform
@@ -349,7 +365,7 @@ int main(int argc, char **argv) {
     // printf("Data: %s\n", hostData);
     // printf("Size: %zu\n", dataSize);
     // crypto_hash(ct, hostData, dataSize);
-
+    printf("\nHash:\n ");
     printHexArray(ct, 32);
     printf("done done\n");
     return 1;

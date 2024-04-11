@@ -18,6 +18,17 @@
 
 #include <inttypes.h> // for PRId64 macro
 
+
+void printArray(word_t* array) {
+  int i;
+  for (i = 0; i < 8; i++) {
+    printf("%016llx", array[i]); // Print as 64-bit hexadecimal
+    if (i < 7) {
+      printf(", ");
+    }
+  }
+}
+
 void bs_addroundkey(word_t * B, word_t rk)
 {
     int i;
@@ -1701,86 +1712,112 @@ unsigned char GMul(unsigned char a, unsigned char b) { // Galois Field (256) Mul
 #define P_CONSTANT_FIRST_ROW 0x7060504030201000ULL
 #define Q_CONSTANT_LAST_ROW 0x8f9fafbfcfdfefffULL
 
+#define ROTL64(a,n) ((((a)<<(n))|((a)>>(64-(n))))&(0xffffffffffffffffULL))
+#define U64BIG(a) \
+  ((ROTL64(a, 8) & (0x000000FF000000FFULL)) | \
+   (ROTL64(a,24) & (0x0000FF000000FF00ULL)) | \
+   (ROTL64(a,40) & (0x00FF000000FF0000ULL)) | \
+   (ROTL64(a,56) & (0xFF000000FF000000ULL)))
+
+
 // for BS_BLOCKSIZE, this is non bitsliced
 void generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_constant, word_t round){
 
     // word_t round = 0; // goes from 0 - 9
-    word_t round_constant = round * 0x0101010101010101ULL;
+    word_t round_constant = round;
 
         for (word_t i = 0; i < BLOCK_SIZE; i+= WORDS_PER_BLOCK)
         {
             // assuming 8 for now
-            p_round_constant[i + 0] = P_CONSTANT_FIRST_ROW ^ round_constant;
-            p_round_constant[i + 1] = 0x0000000000000000ULL;
-            p_round_constant[i + 2] = 0x0000000000000000ULL;
-            p_round_constant[i + 3] = 0x0000000000000000ULL;
-            p_round_constant[i + 4] = 0x0000000000000000ULL;
-            p_round_constant[i + 5] = 0x0000000000000000ULL;
-            p_round_constant[i + 6] = 0x0000000000000000ULL;
-            p_round_constant[i + 7] = 0x0000000000000000ULL;
+            p_round_constant[i + 0] = 0x0000000000000000ull ^ U64BIG(round_constant) ;
+            p_round_constant[i + 1] = 0x1000000000000000ull ^ U64BIG(round_constant) ;
+            p_round_constant[i + 2] = 0x2000000000000000ull ^ U64BIG(round_constant) ;
+            p_round_constant[i + 3] = 0x3000000000000000ull ^ U64BIG(round_constant) ;
+            p_round_constant[i + 4] = 0x4000000000000000ull^ U64BIG(round_constant) ;
+            p_round_constant[i + 5] = 0x5000000000000000ull ^ U64BIG(round_constant) ;
+            p_round_constant[i + 6] = 0x6000000000000000ull^ U64BIG(round_constant) ;
+            p_round_constant[i + 7] = 0x7000000000000000ull^ U64BIG(round_constant) ;
 
-            q_round_constant[i + 0] = 0xffffffffffffffffULL;
-            q_round_constant[i + 1] = 0xffffffffffffffffULL;
-            q_round_constant[i + 2] = 0xffffffffffffffffULL;
-            q_round_constant[i + 3] = 0xffffffffffffffffULL;
-            q_round_constant[i + 4] = 0xffffffffffffffffULL;
-            q_round_constant[i + 5] = 0xffffffffffffffffULL;
-            q_round_constant[i + 6] = 0xffffffffffffffffULL;
-            q_round_constant[i + 7] = round_constant ^ Q_CONSTANT_LAST_ROW;
-
+            q_round_constant[i + 0] = 0xffffffffffffffffull^ U64BIG(round_constant) ;
+            q_round_constant[i + 1] = 0xffffffffffffffefull^ U64BIG(round_constant);
+            q_round_constant[i + 2] = 0xffffffffffffffdfull^ U64BIG(round_constant);
+            q_round_constant[i + 3] = 0xffffffffffffffcfull^ U64BIG(round_constant);
+            q_round_constant[i + 4] = 0xffffffffffffffbfull^ U64BIG(round_constant);
+            q_round_constant[i + 5] = 0xffffffffffffffafull^ U64BIG(round_constant) ;
+            q_round_constant[i + 6] = 0xffffffffffffff9full^ U64BIG(round_constant);
+            q_round_constant[i + 7] = 0xffffffffffffff8full^ U64BIG(round_constant);
         }
-
 }
+
 void bs_generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_constant, word_t round){
 
     word_t bs_q_round_constant[BLOCK_SIZE];
     word_t bs_p_round_constant[BLOCK_SIZE];
 
     // word_t round = 0; // goes from 0 - 9
-    word_t round_constant = round * 0x0101010101010101ULL;
+    word_t round_constant = round;
 
 
         for (word_t i = 0; i < BLOCK_SIZE; i+= WORDS_PER_BLOCK)
         {
-            // assuming 8 for now
-            p_round_constant[i + 0] = P_CONSTANT_FIRST_ROW ^ round_constant;
-            p_round_constant[i + 1] = 0x0000000000000000ULL;
-            p_round_constant[i + 2] = 0x0000000000000000ULL;
-            p_round_constant[i + 3] = 0x0000000000000000ULL;
-            p_round_constant[i + 4] = 0x0000000000000000ULL;
-            p_round_constant[i + 5] = 0x0000000000000000ULL;
-            p_round_constant[i + 6] = 0x0000000000000000ULL;
-            p_round_constant[i + 7] = 0x0000000000000000ULL;
 
-            //for the alternative method 
-            bs_p_round_constant[i + 0] = 0x0000000000000000ULL;
-            bs_p_round_constant[i + 1] = 0x0000000000000000ULL;
-            bs_p_round_constant[i + 2] = 0x0000000000000000ULL;
-            bs_p_round_constant[i + 3] = 0x0000000000000000ULL;
-            bs_p_round_constant[i + 4] = 0x0000000000000000ULL;
-            bs_p_round_constant[i + 5] = 0x0000000000000000ULL;
-            bs_p_round_constant[i + 6] = 0x0000000000000000ULL;
-            bs_p_round_constant[i + 7] = 0x0000000000000000ULL;
+            p_round_constant[i + 0] = 0x0000000000000000ull ^ U64BIG(round_constant) ;
+            p_round_constant[i + 1] = 0x1000000000000000ull ^ U64BIG(round_constant) ;
+            p_round_constant[i + 2] = 0x2000000000000000ull ^ U64BIG(round_constant) ;
+            p_round_constant[i + 3] = 0x3000000000000000ull ^ U64BIG(round_constant) ;
+            p_round_constant[i + 4] = 0x4000000000000000ull^ U64BIG(round_constant) ;
+            p_round_constant[i + 5] = 0x5000000000000000ull ^ U64BIG(round_constant) ;
+            p_round_constant[i + 6] = 0x6000000000000000ull^ U64BIG(round_constant) ;
+            p_round_constant[i + 7] = 0x7000000000000000ull^ U64BIG(round_constant) ;
+
+            q_round_constant[i + 0] = 0xffffffffffffffffull^ U64BIG(round_constant) ;
+            q_round_constant[i + 1] = 0xffffffffffffffefull^ U64BIG(round_constant);
+            q_round_constant[i + 2] = 0xffffffffffffffdfull^ U64BIG(round_constant);
+            q_round_constant[i + 3] = 0xffffffffffffffcfull^ U64BIG(round_constant);
+            q_round_constant[i + 4] = 0xffffffffffffffbfull^ U64BIG(round_constant);
+            q_round_constant[i + 5] = 0xffffffffffffffafull^ U64BIG(round_constant) ;
+            q_round_constant[i + 6] = 0xffffffffffffff9full^ U64BIG(round_constant);
+            q_round_constant[i + 7] = 0xffffffffffffff8full^ U64BIG(round_constant);
+
+            // // assuming 8 for now
+            // p_round_constant[i + 0] = P_CONSTANT_FIRST_ROW ^ round_constant;
+            // p_round_constant[i + 1] = 0x0000000000000000ULL;
+            // p_round_constant[i + 2] = 0x0000000000000000ULL;
+            // p_round_constant[i + 3] = 0x0000000000000000ULL;
+            // p_round_constant[i + 4] = 0x0000000000000000ULL;
+            // p_round_constant[i + 5] = 0x0000000000000000ULL;
+            // p_round_constant[i + 6] = 0x0000000000000000ULL;
+            // p_round_constant[i + 7] = 0x0000000000000000ULL;
+
+            // //for the alternative method 
+            // bs_p_round_constant[i + 0] = 0x0000000000000000ULL;
+            // bs_p_round_constant[i + 1] = 0x0000000000000000ULL;
+            // bs_p_round_constant[i + 2] = 0x0000000000000000ULL;
+            // bs_p_round_constant[i + 3] = 0x0000000000000000ULL;
+            // bs_p_round_constant[i + 4] = 0x0000000000000000ULL;
+            // bs_p_round_constant[i + 5] = 0x0000000000000000ULL;
+            // bs_p_round_constant[i + 6] = 0x0000000000000000ULL;
+            // bs_p_round_constant[i + 7] = 0x0000000000000000ULL;
 
 
-            q_round_constant[i + 0] = 0xffffffffffffffffULL;
-            q_round_constant[i + 1] = 0xffffffffffffffffULL;
-            q_round_constant[i + 2] = 0xffffffffffffffffULL;
-            q_round_constant[i + 3] = 0xffffffffffffffffULL;
-            q_round_constant[i + 4] = 0xffffffffffffffffULL;
-            q_round_constant[i + 5] = 0xffffffffffffffffULL;
-            q_round_constant[i + 6] = 0xffffffffffffffffULL;
-            q_round_constant[i + 7] = round_constant ^ Q_CONSTANT_LAST_ROW;
+            // q_round_constant[i + 0] = 0xffffffffffffffffULL;
+            // q_round_constant[i + 1] = 0xffffffffffffffffULL;
+            // q_round_constant[i + 2] = 0xffffffffffffffffULL;
+            // q_round_constant[i + 3] = 0xffffffffffffffffULL;
+            // q_round_constant[i + 4] = 0xffffffffffffffffULL;
+            // q_round_constant[i + 5] = 0xffffffffffffffffULL;
+            // q_round_constant[i + 6] = 0xffffffffffffffffULL;
+            // q_round_constant[i + 7] = round_constant ^ Q_CONSTANT_LAST_ROW;
 
-            //for the alternative method 
-            bs_q_round_constant[i + 0] = 0xffffffffffffffffULL;
-            bs_q_round_constant[i + 1] = 0xffffffffffffffffULL;
-            bs_q_round_constant[i + 2] = 0xffffffffffffffffULL;
-            bs_q_round_constant[i + 3] = 0xffffffffffffffffULL;
-            bs_q_round_constant[i + 4] = 0xffffffffffffffffULL;
-            bs_q_round_constant[i + 5] = 0xffffffffffffffffULL;
-            bs_q_round_constant[i + 6] = 0xffffffffffffffffULL;
-            bs_q_round_constant[i + 7] = 0xffffffffffffffffULL;
+            // //for the alternative method 
+            // bs_q_round_constant[i + 0] = 0xffffffffffffffffULL;
+            // bs_q_round_constant[i + 1] = 0xffffffffffffffffULL;
+            // bs_q_round_constant[i + 2] = 0xffffffffffffffffULL;
+            // bs_q_round_constant[i + 3] = 0xffffffffffffffffULL;
+            // bs_q_round_constant[i + 4] = 0xffffffffffffffffULL;
+            // bs_q_round_constant[i + 5] = 0xffffffffffffffffULL;
+            // bs_q_round_constant[i + 6] = 0xffffffffffffffffULL;
+            // bs_q_round_constant[i + 7] = 0xffffffffffffffffULL;
 
         }
         
@@ -1879,38 +1916,45 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
     memset(bs_m64_m, 0, sizeof(bs_m64_m));
     memset(bs_m64_hm, 0, sizeof(bs_m64_hm));
 
-    for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+    int word_index =0;
+
+    for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
         bs_m64_m[word_index] = input[word_index];
-        bs_m64_hm[word_index] = state[word_index] ^ bs_m64_m[word_index];
+       bs_m64_hm[word_index] = state[word_index] ^ bs_m64_m[word_index];
     }
 
     for (round = 0; round < 10; round++)
     {
         // bit sliced
-        // bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
+         bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
 
         // non bit sliced
-        generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
+        //generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
         // XOR with round constants
-        for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+        for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
             bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
-          //  bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
+            bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
         }
 
         // P 
-    //    bs_apply_sbox(bs_m64_hm);
-    //    bs_shiftrows_p(bs_m64_hm);
-    //    bs_mixbytes(bs_m64_hm);
+       bs_apply_sbox(bs_m64_hm);
+       bs_shiftrows_p(bs_m64_hm);
+       bs_mixbytes(bs_m64_hm);
 
         // Q
-        // bs_apply_sbox(bs_m64_m);
-    //    bs_shiftrows_q(bs_m64_m);
-        // bs_mixbytes(bs_m64_m);
+        bs_apply_sbox(bs_m64_m);
+       bs_shiftrows_q(bs_m64_m);
+        bs_mixbytes(bs_m64_m);
 
-    
     }
 
-    for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+    printf("\nstate \n");
+    printArray(state);
+    printf("\nbs_m64_m \n");
+    printArray(bs_m64_m);
+    printf("\ninput \n");
+    printArray(input);
+    for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
         state[word_index] = state[word_index] ^ bs_m64_m [word_index];
         state[word_index] = state [word_index] ^ bs_m64_hm[word_index];
     }

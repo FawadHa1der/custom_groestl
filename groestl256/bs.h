@@ -68,5 +68,5 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE]);
 
 void bs_cipher_rev(word_t state[BLOCK_SIZE], word_t (* rk)[BLOCK_SIZE]);
 void bs_generate_roundc_matrix ( word_t * bs_p_round_constant, word_t* bs_q_round_constant, word_t round);
-
+void printArray(word_t* array);
 #endif
