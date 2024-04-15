@@ -1729,23 +1729,34 @@ void generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_constan
         for (word_t i = 0; i < BLOCK_SIZE; i+= WORDS_PER_BLOCK)
         {
             // assuming 8 for now
-            p_round_constant[i + 0] = 0x0000000000000000ull ^ U64BIG(round_constant) ;
-            p_round_constant[i + 1] = 0x1000000000000000ull ^ U64BIG(round_constant) ;
-            p_round_constant[i + 2] = 0x2000000000000000ull ^ U64BIG(round_constant) ;
-            p_round_constant[i + 3] = 0x3000000000000000ull ^ U64BIG(round_constant) ;
-            p_round_constant[i + 4] = 0x4000000000000000ull^ U64BIG(round_constant) ;
-            p_round_constant[i + 5] = 0x5000000000000000ull ^ U64BIG(round_constant) ;
-            p_round_constant[i + 6] = 0x6000000000000000ull^ U64BIG(round_constant) ;
-            p_round_constant[i + 7] = 0x7000000000000000ull^ U64BIG(round_constant) ;
+       
+            // p_round_constant[i + 0] = 0x0000000000000000ull ^ U64BIG(round_constant) ;
+            // p_round_constant[i + 1] = 0x1000000000000000ull ^ U64BIG(round_constant) ;
+            // p_round_constant[i + 2] = 0x2000000000000000ull ^ U64BIG(round_constant) ;
+            // p_round_constant[i + 3] = 0x3000000000000000ull ^ U64BIG(round_constant) ;
+            // p_round_constant[i + 4] = 0x4000000000000000ull^ U64BIG(round_constant) ;
+            // p_round_constant[i + 5] = 0x5000000000000000ull ^ U64BIG(round_constant) ;
+            // p_round_constant[i + 6] = 0x6000000000000000ull^ U64BIG(round_constant) ;
+            // p_round_constant[i + 7] = 0x7000000000000000ull^ U64BIG(round_constant) ;
+
+            p_round_constant[i + 0] = 0x0000000000000000ull ^ round_constant ;
+            p_round_constant[i + 1] = 0x0000000000000010ull ^ round_constant ;
+            p_round_constant[i + 2] = 0x0000000000000020ull ^ round_constant ;
+            p_round_constant[i + 3] = 0x0000000000000030ull ^ round_constant ;
+            p_round_constant[i + 4] = 0x0000000000000040ull^ round_constant ;
+            p_round_constant[i + 5] = 0x0000000000000050ull ^ round_constant ;
+            p_round_constant[i + 6] = 0x0000000000000060ull^ round_constant ;
+            p_round_constant[i + 7] = 0x0000000000000070ull^ round_constant ;
+
 
             q_round_constant[i + 0] = 0xffffffffffffffffull^ U64BIG(round_constant) ;
-            q_round_constant[i + 1] = 0xffffffffffffffefull^ U64BIG(round_constant);
-            q_round_constant[i + 2] = 0xffffffffffffffdfull^ U64BIG(round_constant);
-            q_round_constant[i + 3] = 0xffffffffffffffcfull^ U64BIG(round_constant);
-            q_round_constant[i + 4] = 0xffffffffffffffbfull^ U64BIG(round_constant);
-            q_round_constant[i + 5] = 0xffffffffffffffafull^ U64BIG(round_constant) ;
-            q_round_constant[i + 6] = 0xffffffffffffff9full^ U64BIG(round_constant);
-            q_round_constant[i + 7] = 0xffffffffffffff8full^ U64BIG(round_constant);
+            q_round_constant[i + 1] = 0xefffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 2] = 0xdfffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 3] = 0xcfffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 4] = 0xbfffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 5] = 0xafffffffffffffffull^ U64BIG(round_constant) ;
+            q_round_constant[i + 6] = 0x9fffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 7] = 0x8fffffffffffffffull^ U64BIG(round_constant);
         }
 }
 
@@ -1761,23 +1772,23 @@ void bs_generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_cons
         for (word_t i = 0; i < BLOCK_SIZE; i+= WORDS_PER_BLOCK)
         {
 
-            p_round_constant[i + 0] = 0x0000000000000000ull ^ U64BIG(round_constant) ;
-            p_round_constant[i + 1] = 0x1000000000000000ull ^ U64BIG(round_constant) ;
-            p_round_constant[i + 2] = 0x2000000000000000ull ^ U64BIG(round_constant) ;
-            p_round_constant[i + 3] = 0x3000000000000000ull ^ U64BIG(round_constant) ;
-            p_round_constant[i + 4] = 0x4000000000000000ull^ U64BIG(round_constant) ;
-            p_round_constant[i + 5] = 0x5000000000000000ull ^ U64BIG(round_constant) ;
-            p_round_constant[i + 6] = 0x6000000000000000ull^ U64BIG(round_constant) ;
-            p_round_constant[i + 7] = 0x7000000000000000ull^ U64BIG(round_constant) ;
+            p_round_constant[i + 0] = 0x0000000000000000ull ^ round_constant ;
+            p_round_constant[i + 1] = 0x0000000000000010ull ^ round_constant ;
+            p_round_constant[i + 2] = 0x0000000000000020ull ^ round_constant ;
+            p_round_constant[i + 3] = 0x0000000000000030ull ^ round_constant ;
+            p_round_constant[i + 4] = 0x0000000000000040ull^ round_constant ;
+            p_round_constant[i + 5] = 0x0000000000000050ull ^ round_constant ;
+            p_round_constant[i + 6] = 0x0000000000000060ull^ round_constant ;
+            p_round_constant[i + 7] = 0x0000000000000070ull^ round_constant ;
 
             q_round_constant[i + 0] = 0xffffffffffffffffull^ U64BIG(round_constant) ;
-            q_round_constant[i + 1] = 0xffffffffffffffefull^ U64BIG(round_constant);
-            q_round_constant[i + 2] = 0xffffffffffffffdfull^ U64BIG(round_constant);
-            q_round_constant[i + 3] = 0xffffffffffffffcfull^ U64BIG(round_constant);
-            q_round_constant[i + 4] = 0xffffffffffffffbfull^ U64BIG(round_constant);
-            q_round_constant[i + 5] = 0xffffffffffffffafull^ U64BIG(round_constant) ;
-            q_round_constant[i + 6] = 0xffffffffffffff9full^ U64BIG(round_constant);
-            q_round_constant[i + 7] = 0xffffffffffffff8full^ U64BIG(round_constant);
+            q_round_constant[i + 1] = 0xefffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 2] = 0xdfffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 3] = 0xcfffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 4] = 0xbfffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 5] = 0xafffffffffffffffull^ U64BIG(round_constant) ;
+            q_round_constant[i + 6] = 0x9fffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 7] = 0x8fffffffffffffffull^ U64BIG(round_constant);
 
             // // assuming 8 for now
             // p_round_constant[i + 0] = P_CONSTANT_FIRST_ROW ^ round_constant;
@@ -1823,6 +1834,8 @@ void bs_generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_cons
         
         bs_transpose(p_round_constant);
         bs_transpose(q_round_constant);
+
+        return; // TODO remove this and check the code below
 
          //////////////////////// PPPPPPPPPPPPP/////////////////////////
        // for P the modified bits are in the first 64 bytes and for q they are in the last 64 bytes 
@@ -1920,16 +1933,28 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
 
     for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
         bs_m64_m[word_index] = input[word_index];
-       bs_m64_hm[word_index] = state[word_index] ^ bs_m64_m[word_index];
+        bs_m64_hm[word_index] = state[word_index] ^ bs_m64_m[word_index];
     }
+    printf("\ninput P before xor with round constant\n");
+    printArray(bs_m64_hm);
+
+    printf("\ninput Q before xor with round constant\n");
+    printArray(bs_m64_m);
 
     for (round = 0; round < 10; round++)
     {
         // bit sliced
-         bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
+        bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
 
         // non bit sliced
         //generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
+        printf("\np round constant\n");
+        printArray(bs_p_round_constant);
+        // printf("\nq round constant\n");
+        // printArray(bs_q_round_constant);
+
+
+
         // XOR with round constants
         for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
             bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
@@ -1937,27 +1962,45 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
         }
 
         // P 
-       bs_apply_sbox(bs_m64_hm);
-       bs_shiftrows_p(bs_m64_hm);
-       bs_mixbytes(bs_m64_hm);
+    //   bs_apply_sbox(bs_m64_hm);
+    //    bs_shiftrows_p(bs_m64_hm);
+    //    bs_mixbytes(bs_m64_hm);
 
         // Q
-        bs_apply_sbox(bs_m64_m);
-       bs_shiftrows_q(bs_m64_m);
-        bs_mixbytes(bs_m64_m);
+       bs_apply_sbox(bs_m64_m);
+    //    bs_shiftrows_q(bs_m64_m);
+        // bs_mixbytes(bs_m64_m);
 
     }
 
-    printf("\nstate \n");
-    printArray(state);
-    printf("\nbs_m64_m \n");
+    printf("\nQ bs_m64_m before XOR with state  \n");
     printArray(bs_m64_m);
+
+    printf("\nP bs_m64_hm before XOR with state \n");
+    printArray(bs_m64_hm);
+
     printf("\ninput \n");
     printArray(input);
+
+    printf("\nstate before the xor\n");
+    printArray(state);
+
+    word_t tmp_xor[BLOCK_SIZE]; 
+
     for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+        // tmp_xor[word_index] = bs_m64_hm[word_index] ^ bs_m64_m[word_index];
+        // state[word_index] = state[word_index] ^ tmp_xor[word_index];
         state[word_index] = state[word_index] ^ bs_m64_m [word_index];
         state[word_index] = state [word_index] ^ bs_m64_hm[word_index];
     }
+    // printf("\ntmp_xor\n");
+    // printArray(tmp_xor);
+
+    // printf("\nstate after the bs_m64_m xor\n");
+    // printArray(state);
+
+    printf("\nstate after the xor\n");
+    printArray(state);
 
 }
 

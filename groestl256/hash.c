@@ -70,7 +70,7 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
             // bs_transpose(msg);
             // bs_transpose_rev(msg);
             ////////////////////
-           bs_transpose(input_space);
+            bs_transpose(input_space);
             bs_cipher(bs_state, input_space); // output state is in bs_state
             // memmove(outputb, input_space, size);
             offset += BS_BLOCK_SIZE;
@@ -79,7 +79,7 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
     }
 
 
- bs_OutputTransformation512(bs_state);
+//  bs_OutputTransformation512(bs_state);
  bs_transpose_rev(bs_state);
 
   // return 0;
@@ -225,7 +225,7 @@ HashReturn Update(hashState* ctx,
   printf("\n Input after replication: \n");
   printArray(transformedInput);
 
- Transform512Combined(transformedOutput, transformedInput, msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
+  Transform512Combined(transformedOutput, transformedInput, msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
 
 /*****************************/
   // prev call below
