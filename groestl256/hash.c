@@ -48,6 +48,7 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
     // word_t * state = (word_t *)outputb;
 
     // bs_expand_key(rk, key);
+    bs_transpose(bs_state);
 
     while (size_left > 0)
     {
@@ -55,6 +56,7 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
         {
             memcpy(input_space, msg +  offset, BS_BLOCK_SIZE);
            bs_transpose(input_space);
+
             bs_cipher(bs_state, input_space);
             offset += BS_BLOCK_SIZE;
             size_left -= BS_BLOCK_SIZE;

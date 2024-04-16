@@ -31,7 +31,8 @@
     "span": "c",
     "stack": "c",
     "format": "c",
-    "*.inc": "c"
+    "*.inc": "c",
+    "tablessubbytes.h": "c"
   },
   "C_Cpp_Runner.cCompilerPath": "clang",
   "C_Cpp_Runner.cppCompilerPath": "clang++",
