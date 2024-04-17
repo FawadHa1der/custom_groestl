@@ -813,13 +813,13 @@ void bs_shiftrows_q(word_t * B)
     word_t * Br7;
 
     uint32_t offsetr0 = 64;
-    uint32_t offsetr1 = 200;
-    uint32_t offsetr2 = 336;
-    uint32_t offsetr3 = 472;
-    uint32_t offsetr4 = 32;
-    uint32_t offsetr5 = 176;
-    uint32_t offsetr6 = 304;
-    uint32_t offsetr7 = 440;
+    uint32_t offsetr1 = 192;
+    uint32_t offsetr2 = 320;
+    uint32_t offsetr3 = 448;
+    uint32_t offsetr4 = 0;
+    uint32_t offsetr5 = 128;
+    uint32_t offsetr6 = 256;
+    uint32_t offsetr7 = 384;
 
     Br0 = B + offsetr0;
     Br1 = B + offsetr1;
@@ -833,6 +833,86 @@ void bs_shiftrows_q(word_t * B)
     int i;
     for(i=0; i<8; i++)
     {
+        if (i == 0){
+            Br0 = B + 64;
+            Br1 = B + 128;
+            Br2 = B + 192;
+            Br3 = B + 256;
+            Br4 = B + 320;
+            Br5 = B + 384;
+            Br6 = B + 448;
+            Br7 = B + 0;
+        }
+        else if (i == 1){
+            Br0 = B + 200;
+            Br1 = B + 264;
+            Br2 = B + 328;
+            Br3 = B + 392;
+            Br4 = B + 456;
+            Br5 = B + 8;
+            Br6 = B + 72;
+            Br7 = B + 136;
+        }
+        else if (i == 2){
+            Br0 = B + 336;
+            Br1 = B + 400;
+            Br2 = B + 464;
+            Br3 = B + 16;
+            Br4 = B + 80;
+            Br5 = B + 144;
+            Br6 = B + 208;
+            Br7 = B + 272;
+        }
+        else if (i == 3){
+            Br0 = B + 472;
+            Br1 = B + 24;
+            Br2 = B + 88;
+            Br3 = B + 152;
+            Br4 = B + 216;
+            Br5 = B + 280;
+            Br6 = B + 344;
+            Br7 = B + 408;
+        }
+        else if (i == 4){
+            Br0 = B + 32;
+            Br1 = B + 96;
+            Br2 = B + 160;
+            Br3 = B + 224;
+            Br4 = B + 288;
+            Br5 = B + 352;
+            Br6 = B + 416;
+            Br7 = B + 480;
+        }
+        else if (i == 5){
+            Br0 = B + 168;
+            Br1 = B + 232;
+            Br2 = B + 296;
+            Br3 = B + 360;
+            Br4 = B + 424;
+            Br5 = B + 488;
+            Br6 = B + 40;
+            Br7 = B + 104;
+        }
+        else if (i == 6){
+            Br0 = B + 304;
+            Br1 = B + 368;
+            Br2 = B + 432;
+            Br3 = B + 496;
+            Br4 = B + 48;
+            Br5 = B + 112;
+            Br6 = B + 176;
+            Br7 = B + 240;
+        }
+        else if (i == 7){
+            Br0 = B + 440;
+            Br1 = B + 504;
+            Br2 = B + 56;
+            Br3 = B + 120;
+            Br4 = B + 184;
+            Br5 = B + 248;
+            Br6 = B + 312;
+            Br7 = B + 376;
+        }
         Bp[B0 + 0] = Br0[0];
         Bp[B0 + 1] = Br0[1];
         Bp[B0 + 2] = Br0[2];
@@ -841,6 +921,7 @@ void bs_shiftrows_q(word_t * B)
         Bp[B0 + 5] = Br0[5];
         Bp[B0 + 6] = Br0[6];
         Bp[B0 + 7] = Br0[7];
+        
         Bp[B1 + 0] = Br1[0];
         Bp[B1 + 1] = Br1[1];
         Bp[B1 + 2] = Br1[2];
@@ -849,6 +930,7 @@ void bs_shiftrows_q(word_t * B)
         Bp[B1 + 5] = Br1[5];
         Bp[B1 + 6] = Br1[6];
         Bp[B1 + 7] = Br1[7];
+        
         Bp[B2 + 0] = Br2[0];
         Bp[B2 + 1] = Br2[1];
         Bp[B2 + 2] = Br2[2];
@@ -857,6 +939,7 @@ void bs_shiftrows_q(word_t * B)
         Bp[B2 + 5] = Br2[5];
         Bp[B2 + 6] = Br2[6];
         Bp[B2 + 7] = Br2[7];
+
         Bp[B3 + 0] = Br3[0];
         Bp[B3 + 1] = Br3[1];
         Bp[B3 + 2] = Br3[2];
@@ -974,6 +1057,7 @@ void bs_shiftrows_p(word_t * B)
         Bp[B0 + 5] = Br0[5];
         Bp[B0 + 6] = Br0[6];
         Bp[B0 + 7] = Br0[7];
+        
         Bp[B1 + 0] = Br1[0];
         Bp[B1 + 1] = Br1[1];
         Bp[B1 + 2] = Br1[2];
@@ -982,6 +1066,7 @@ void bs_shiftrows_p(word_t * B)
         Bp[B1 + 5] = Br1[5];
         Bp[B1 + 6] = Br1[6];
         Bp[B1 + 7] = Br1[7];
+        
         Bp[B2 + 0] = Br2[0];
         Bp[B2 + 1] = Br2[1];
         Bp[B2 + 2] = Br2[2];
@@ -990,6 +1075,7 @@ void bs_shiftrows_p(word_t * B)
         Bp[B2 + 5] = Br2[5];
         Bp[B2 + 6] = Br2[6];
         Bp[B2 + 7] = Br2[7];
+
         Bp[B3 + 0] = Br3[0];
         Bp[B3 + 1] = Br3[1];
         Bp[B3 + 2] = Br3[2];
@@ -2145,13 +2231,13 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
 
         // P 
         bs_apply_sbox(bs_m64_hm);
-       bs_shiftrows_p(bs_m64_hm);
-    //    bs_mixbytes(bs_m64_hm);
+        bs_shiftrows_p(bs_m64_hm);
+       bs_mixbytes(bs_m64_hm);
 
         // Q
        bs_apply_sbox(bs_m64_m);
-        bs_shiftrows_q(bs_m64_m);
-        // bs_mixbytes(bs_m64_m);
+       bs_shiftrows_q(bs_m64_m);
+        bs_mixbytes(bs_m64_m);
 
     }
 
