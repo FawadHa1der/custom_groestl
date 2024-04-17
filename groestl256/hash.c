@@ -81,7 +81,7 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
     }
 
 
-//  bs_OutputTransformation512(bs_state);
+ bs_OutputTransformation512(bs_state);
  bs_transpose_rev(bs_state);
 
   // return 0;

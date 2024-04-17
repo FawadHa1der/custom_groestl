@@ -1378,13 +1378,22 @@ void bs_gf_add(word_t * A, word_t * B)
         A[i] ^= B[i];
     }
 }
-
+void print_word_t_var(word_t var[8]) {
+    printf("\n");
+    for(int i = 0; i < 8; i++) {
+        printf("%lu ", var[i]);
+    }
+    printf("\n");
+}
 
 void bs_mixbytes(word_t * B)
 {
     word_t Bp_space[BLOCK_SIZE];
+    memset(Bp_space, 0, sizeof(Bp_space));
     word_t * Bp = Bp_space;
     word_t tmpProducts[8];
+
+    word_t oldTmpProducts[8];
     // to understand this, see
     // https://en.wikipedia.org/wiki/Rijndael_mix_columns
     
@@ -1419,12 +1428,30 @@ void bs_mixbytes(word_t * B)
 
     // word_t of = B[A0+7] ^ B[A1+7] ^ B[A2+7];
     // 2S00
+
     bs_gf_multiply(&B[A0], tmpProducts, 2);
     bs_gf_add(&Bp[A0], tmpProducts);
+
+    // printf("printing tmpProducts");
+    // print_word_t_var(tmpProducts);
+    // word_t of = B[A0+7];
+    // oldTmpProducts[0] =  of;
+    // oldTmpProducts[1] =  B[A0+0] ^ of;
+    // oldTmpProducts[2] =  B[A0+1] ;
+    // oldTmpProducts[3] =  B[A0+2] ^ of;
+    // oldTmpProducts[4] =  B[A0+3] ^ of;
+    // oldTmpProducts[5] =  B[A0+4] ;
+    // oldTmpProducts[6] =  B[A0+5] ;
+    // oldTmpProducts[7] =  B[A0+6] ;
+    // printf("printing oldTmpProducts");
+    // print_word_t_var(oldTmpProducts);
+    // printf("printing &Bp[A0]");
+    // print_word_t_var(&Bp[A0]);
 
     // 2S01
     bs_gf_multiply(&B[A1], tmpProducts, 2);
     bs_gf_add(&Bp[A0], tmpProducts);
+
 
     // 3S02
     bs_gf_multiply(&B[A2], tmpProducts, 3);
