@@ -81,6 +81,7 @@ HashReturn Update(hashState* ctx,
 HashReturn Final(hashState*, u32*  ,BitSequence*);
 HashReturn Hash(int, const BitSequence*, DataLength, BitSequence*);
 /* NIST API end   */
+void printAllResultsHashes(word_t* array);
 
 /* helper functions */
 void PrintHash(const BitSequence*, int);

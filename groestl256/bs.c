@@ -15,7 +15,7 @@
 #endif
 
     #include <stdio.h>
-
+#include "hash.h"
 #include <inttypes.h> // for PRId64 macro
 #include "tablesSubBytes.h"
 void sbox_bitsliced(word_t *in);
@@ -2236,11 +2236,6 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
     printArray(input);
 
 
-    printf("\nsizeof(bs_tmp_copy)) %d\n", sizeof(bs_tmp_copy));
-    printf("\nstate or h before any XOR\n");
-    memcpy(bs_tmp_copy, state, sizeof(bs_tmp_copy));
-//    bs_transpose_rev(bs_tmp_copy);
-    printArray(bs_tmp_copy);
 
     for (round = 0; round < 10; round++)
     {
@@ -2255,6 +2250,11 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
             bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
             bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
         }
+    // printf("\nsizeof(bs_tmp_copy)) %d\n", sizeof(bs_tmp_copy));
+    printf("\n printing all the results in bs_m64_hm\n");
+    memcpy(bs_tmp_copy, bs_m64_hm, sizeof(bs_tmp_copy));
+    bs_transpose_rev(bs_tmp_copy);
+   // printAllResultsHashes(bs_tmp_copy);
 
         // P 
         bs_apply_sbox(bs_m64_hm);

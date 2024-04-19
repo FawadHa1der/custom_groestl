@@ -22,8 +22,7 @@
 #include <inttypes.h>
 
 void bs_OutputTransformation512(word_t *outputTransformation);
-
-
+void printHexArray(unsigned char *array, uint size);
 
 
 // /* apply the output transformation after identifying variant */
@@ -81,9 +80,8 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
     }
 
 
- bs_OutputTransformation512(bs_state);
- bs_transpose_rev(bs_state);
-
+  bs_OutputTransformation512(bs_state);
+  bs_transpose_rev(bs_state);
   // return 0;
 }
 
@@ -211,7 +209,7 @@ HashReturn Update(hashState* ctx,
   uchar* transformedInput = malloc(msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
   memset(transformedInput, 0, msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
 
-  u32* combinedTransformedOutput32 =transformedOutput;
+  u8* combinedTransformedOutput8 =transformedOutput;
   
   for (int transformIndex = 0; transformIndex < NO_OF_PARALLEL_INPUTS; transformIndex++) {
     // first block of all the parallel inputs are placed first and then the second blocks for all the parallel inputs and so on
@@ -219,10 +217,13 @@ HashReturn Update(hashState* ctx,
       // ctx->statesize should be equal to 64 or msgLenWithPadding/ ctx->block_counter
       memcpy(transformedInput + ((transformIndex * msgLenWithPadding) + (ctx->statesize * blockIndex)), input + (ctx->statesize * blockIndex) ,  ctx->statesize);
     }
-      // combinedTransformedOutput32 += ctx->statesize; // temp cast
-      // combinedTransformedOutput32[2*ctx->columns-1] = U32BIG((u32)ctx->hashbitlen);
-
+      // // not the best logic, it reolicates the the first 64 bytes of transformedOutput itself to rest of 63 blocks. basically
+      // combinedTransformedOutput8 += ctx->statesize; // temp cast
+      // memcpy(combinedTransformedOutput8, transformedOutput )
+      // combinedTransformedOutput8[2*ctx->columns-1] = U32BIG((u32)ctx->hashbitlen);
   }
+  // printf("\n print all input to see if its copied correctly: \n");
+  // printAllResultsHashes(transformedInput);
 
   printf("\n Input after replication: \n");
   printArray(transformedInput);
@@ -235,17 +236,21 @@ HashReturn Update(hashState* ctx,
   return SUCCESS;
 }
 
-// void printArray(word_t* array) {
-//     int i;
-//     printf("[");
-//     for (i = 0; i < BLOCK_SIZE; i++) {
-//         printf("%u", array[i]);
-//         if (i < BLOCK_SIZE - 1) {
-//             printf(", ");
-//         }
-//     }
-//     printf("]\n");
-// }
+void printAllResultsHashes(word_t* array) {
+  int i;
+  for (i = 0; i < BLOCK_SIZE ; i+= 8) {
+ //   printf("%016llx", array[i]); // Print as 64-bit hexadecimal
+    printf("\n Result hash for %d\n", i/8);
+    printHexArray(&array[i], 64);// i-4 because last 256 bits contain the answer
+
+    // for (int j = i; j < i + WORDS_PER_BLOCK; j++) {
+    //   printf("%016llx", array[j]); // Print as 64-bit hexadecimal
+    // }
+    // if (i < 7) {
+    //   printf(", ");
+    // }
+  }
+}
 
 
 /* finalise: process remaining data (including padding), perform
@@ -254,6 +259,8 @@ HashReturn Final(hashState* ctx, u32* input,
 		 BitSequence* output) {
   int i, j = 0, hashbytelen = ctx->hashbitlen/8;
   u8 *s = input;
+
+  printAllResultsHashes(input);
 
   /* store hash result in output */
   for (i = ctx->statesize-hashbytelen; i < ctx->statesize; i++,j++) {
@@ -286,7 +293,13 @@ HashReturn Hash(int hashbitlen,
 
   u32* combinedTransformedOutput32 = combinedTransformedOutput; // temp cast
   /* allocate memory for state and data buffer */
-  combinedTransformedOutput32[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
+
+  // set context.hashbitlen in all of the blocks that are copied
+  for (int block = 0; block < WORD_SIZE; block++) {
+    combinedTransformedOutput32[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
+    combinedTransformedOutput32 += context.statesize/sizeof(u32);
+  }
+ // combinedTransformedOutput32[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
 
   /* process message */
   if ((ret = Update(&context, data, databitlen, combinedTransformedOutput)) != SUCCESS)
