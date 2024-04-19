@@ -1974,6 +1974,8 @@ void print_word_in_hex_and_binary(word_t word) {
     printf("\n");
 }
 
+
+//normal unbitsliced
 unsigned char GMul(unsigned char a, unsigned char b) { // Galois Field (256) Multiplication of two Bytes
     unsigned char p = 0;
 
@@ -2123,6 +2125,35 @@ void bs_generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_cons
         bs_transpose(p_round_constant);
         bs_transpose(q_round_constant);
 
+        // print the transposed round constant matrix
+        printf ("P Round constant matrix for round %d\n", round);
+        // printArray(p_round_constant);
+        for (word_t i = 0; i < BLOCK_SIZE; i++) {
+            if (p_round_constant[i] != 0) {
+                printf("Line number: %d in p_round_constant \n", i);
+                print_word_in_hex_and_binary(p_round_constant[i]);
+            }
+
+            // if (p_round_constant[i] != bs_p_round_constant_and_round) {
+            // }
+            // word_t bitpos = 1ULL << i;
+            // if (bitpos & bs_p_round_constant_and_round) {
+            //     // printf("Line number: %d in p_round_constant \n", i);
+            //     // print_word_in_hex_and_binary(p_round_constant[i]);
+            //     bs_p_round_constant[i] = 0xffffffffffffffffULL;
+            // }
+        }
+
+        // printf ("Q Round constant matrix for round %d\n", round);
+
+        // for (word_t i = 0; i < WORD_SIZE; i++) {
+        //     if (q_round_constant[i] != 0xffffffffffffffffULL) {
+        //         printf("Line number: %d in transposed q_round_constant \n", i);
+        //         print_word_in_hex_and_binary(q_round_constant[i]);
+        //     }
+        // }
+
+
         return; // TODO remove this and check the code below
 
          //////////////////////// PPPPPPPPPPPPP/////////////////////////
@@ -2203,6 +2234,10 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
     word_t round = 0;
     word_t bs_p_round_constant[BLOCK_SIZE];
     word_t bs_q_round_constant[BLOCK_SIZE];
+
+    word_t bs_p_round_constant_minimal[BLOCK_SIZE];
+    memset(bs_p_round_constant_minimal, 0, sizeof(bs_p_round_constant_minimal));
+
     memset(bs_p_round_constant, 0, sizeof(bs_p_round_constant));
     memset(bs_q_round_constant, 0, sizeof(bs_q_round_constant));
 
@@ -2210,7 +2245,6 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
     word_t q_round_constant[BLOCK_SIZE];
     memset(p_round_constant, 0, sizeof(p_round_constant));
     memset(q_round_constant, 0, sizeof(q_round_constant));
-
 
     word_t bs_m64_m[BLOCK_SIZE];
     word_t bs_m64_hm[BLOCK_SIZE];
@@ -2232,47 +2266,61 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
     word_t bs_tmp_copy[BLOCK_SIZE];
     memset(bs_tmp_copy, 0, sizeof(bs_tmp_copy));
 
-    printf("\ninput \n");
-    printArray(input);
+    // printf("\ninput \n");
+    // printArray(input);
 
+        uint8_t bit_index = 0; 
+    const word_t P_ROUND_INITIAL_CONSTANT = 0x7060504030201000ULL;
+    const word_t Q_ROUND_INITIAL_CONSTANT = 0x8f9fafbfcfdfefffULL;
+    const int COLUMN_SIZE = 64; // 64 bits per groestl docs
 
-
+    word_t P_ROUND_CONSTANT = 0;
+    word_t Q_ROUND_CONSTANT = 0;
     for (round = 0; round < 10; round++)
     {
+        P_ROUND_CONSTANT = P_ROUND_INITIAL_CONSTANT ^ round;
         // bit sliced
         bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
+        for (int byte_index = 0; byte_index < 8; byte_index++) {
+            u8 byte_constant =  (P_ROUND_CONSTANT >> (8 * byte_index)) & 0xFF;// we take a byte out of the 64 bit constant. 
+            for (bit_index = 0; bit_index < 8; bit_index++){
+                if (byte_constant & (1 << bit_index)){
+                    printf("round: %d, bit_index: %d\n", round, bit_index);
+                    bs_p_round_constant_minimal[(byte_index * COLUMN_SIZE) + bit_index] ^= 0xffffffffffffffffULL;
+                }
+            }
+        }
+
+        for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+            if (bs_p_round_constant[word_index] != bs_p_round_constant_minimal[word_index]){
+                printf("bs_p_round_constant[word_index] != bs_p_round_constant_minimal[word_index]\n");
+                print_word_in_hex_and_binary(bs_p_round_constant[bit_index]);
+            }
+        }
 
         // non bit sliced
-       // generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
+        // generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
 
         // XOR with round constants
         for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
             bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
-            bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
+           bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
         }
-    // printf("\nsizeof(bs_tmp_copy)) %d\n", sizeof(bs_tmp_copy));
-    printf("\n printing all the results in bs_m64_hm\n");
-    memcpy(bs_tmp_copy, bs_m64_hm, sizeof(bs_tmp_copy));
-    bs_transpose_rev(bs_tmp_copy);
-   // printAllResultsHashes(bs_tmp_copy);
 
         // P 
         bs_apply_sbox(bs_m64_hm);
         bs_shiftrows_p(bs_m64_hm);
-       bs_mixbytes(bs_m64_hm);
+        bs_mixbytes(bs_m64_hm);
 
         // Q
-       bs_apply_sbox(bs_m64_m);
-       bs_shiftrows_q(bs_m64_m);
+        bs_apply_sbox(bs_m64_m);
+        bs_shiftrows_q(bs_m64_m);
         bs_mixbytes(bs_m64_m);
 
     }
 
     // printf("\nQ bs_m64_m before XOR with state  \n");
     // printArray(bs_m64_m);
-
-
-
 
     for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
         // tmp_xor[word_index] = bs_m64_hm[word_index] ^ bs_m64_m[word_index];
@@ -2286,7 +2334,7 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
     // printf("\nstate after the bs_m64_m xor\n");
     // printArray(state);
 
-    printf("\nstate after the xor\n");
-    printArray(state);
+    // printf("\nstate after the xor\n");
+    // printArray(state);
 
 }

@@ -20,6 +20,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <time.h>
 
 void bs_OutputTransformation512(word_t *outputTransformation);
 void printHexArray(unsigned char *array, uint size);
@@ -369,6 +370,11 @@ int main(int argc, char **argv) {
     fread(hostData, sizeof(unsigned char), dataSize, file);
     fclose(file);
 
+    clock_t start, end;
+    double cpu_time_used;
+
+    start = clock();
+
     const char* message = "my message";
     size_t size = strlen(message);
 
@@ -383,7 +389,12 @@ int main(int argc, char **argv) {
     printf("\nHash:\n ");
     printHexArray(ct, 32);
     printf("done done\n");
-    return 1;
+
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+
+    printf("Time spent: %f seconds\n", cpu_time_used);
+
 }
 
 
