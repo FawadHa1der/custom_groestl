@@ -201,8 +201,8 @@ HashReturn Update(hashState* ctx,
     ctx->block_counter >>= 8;
   }
   /***********************START OF MESSAGE REPLICATION?TRANSFORMATION JUST FOR TESTING*/
-  printf("\n early early Input: \n");
-  printArray(input);
+  // printf("\n early early Input: \n");
+  // printArray(input);
 
   int msgLenWithPadding = completeBlockCounter * ctx->statesize;
   const int NO_OF_PARALLEL_INPUTS = WORD_SIZE;
@@ -226,8 +226,8 @@ HashReturn Update(hashState* ctx,
   // printf("\n print all input to see if its copied correctly: \n");
   // printAllResultsHashes(transformedInput);
 
-  printf("\n Input after replication: \n");
-  printArray(transformedInput);
+  // printf("\n Input after replication: \n");
+  // printArray(transformedInput);
 
   Transform512Combined(transformedOutput, transformedInput, msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
 
