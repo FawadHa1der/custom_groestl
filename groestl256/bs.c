@@ -2034,6 +2034,64 @@ void generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_constan
         }
 }
 
+void bs_generate_roundc_matrix_p_minimal ( word_t * p_round_constant, word_t round){
+
+    uint8_t bit_index = 0; 
+    const word_t P_ROUND_INITIAL_CONSTANT = 0x7060504030201000ULL;
+    const int COLUMN_SIZE_BITS = 64; // 64 bits per groestl docs
+
+    word_t P_ROUND_CONSTANT = 0;
+
+    P_ROUND_CONSTANT = P_ROUND_INITIAL_CONSTANT ;
+
+    // bit sliced round constants
+    // one isthe simpler way to just transpose the round constant matrix and the other is to do it manually in a complicated way in an effort to optimize it.
+    // bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
+    for (int byte_index = 0; byte_index < 8; byte_index++) { // byte index into the P_ROUND_INITIAL_CONSTANT
+        u8 byte_constant =  (P_ROUND_CONSTANT >> (8 * byte_index)) & 0xFF;// we take a byte out of the 64 bit constant. 
+        byte_constant = byte_constant ^ round;
+        // now we convert the bits in the byte constant to indices in the bit sliced array
+        for (bit_index = 0; bit_index < 8; bit_index++){
+            if (byte_constant & (1 << bit_index)){
+                // printf("round: %d, bit_index: %d\n", round, bit_index);
+                int index_into_bs_p_round_constant = byte_index * COLUMN_SIZE_BITS + bit_index;
+                p_round_constant[index_into_bs_p_round_constant] = 0xffffffffffffffffULL;
+            }
+        }
+    }
+
+    // word_t round = 0; // goes from 0 - 9
+}
+
+// an attempt to generate the round constant matrix in a more efficient/performant way
+void bs_generate_roundc_matrix_q_minimal ( word_t * q_round_constant, word_t round){
+
+    uint8_t bit_index = 0; 
+    const word_t Q_ROUND_INITIAL_CONSTANT = 0x8f9fafbfcfdfefffULL;
+    const int COLUMN_SIZE_BITS = 64; // 64 bits per groestl docs
+
+    word_t Q_ROUND_CONSTANT = 0;
+    Q_ROUND_CONSTANT = Q_ROUND_INITIAL_CONSTANT;
+
+    for (int byte_index = 0; byte_index < 8; byte_index++) { // byte index into the ROUND_INITIAL_CONSTANT
+        u8 byte_constant =  (Q_ROUND_CONSTANT >> (8 * byte_index)) & 0xFF;// we take a byte out of the 64 bit constant. 
+        byte_constant = byte_constant ^ round;
+        // now we convert the bits in the byte constant to indices in the bit sliced array
+        for (bit_index = 0; bit_index < 8; bit_index++){
+            if ((byte_constant & (1 << bit_index)) == 0){
+                // printf("round: %d, bit_index: %d\n", round, bit_index);
+                // since the Q round constants 0x8f9fafbfcfdfefffULL are XORed to the MSBs of the 64 bit columns we add 56(i know weird number). See groestl docs, page 9.
+                int index_into_bs_q_round_constant = byte_index * COLUMN_SIZE_BITS + bit_index + 56;
+                // bs_q_round_constant_minimal[index_into_bs_q_round_constant] = 0xffffffffffffffffULL;
+                q_round_constant[index_into_bs_q_round_constant] = 0x0000000000000ULL;
+            }
+        }
+    }
+    // word_t round = 0; // goes from 0 - 9
+}
+
+
+
 void bs_generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_constant, word_t round){
 
     word_t bs_q_round_constant[BLOCK_SIZE];
@@ -2220,19 +2278,12 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
     word_t bs_p_round_constant[BLOCK_SIZE];
     word_t bs_q_round_constant[BLOCK_SIZE];
 
-    word_t bs_p_round_constant_minimal[BLOCK_SIZE];
-    memset(bs_p_round_constant_minimal, 0, sizeof(bs_p_round_constant_minimal));
 
-    word_t bs_q_round_constant_minimal[BLOCK_SIZE];
-    memset(bs_q_round_constant_minimal, 0, sizeof(bs_q_round_constant_minimal));
 
-    memset(bs_p_round_constant, 0, sizeof(bs_p_round_constant));
-    memset(bs_q_round_constant, 0, sizeof(bs_q_round_constant));
-
-    word_t p_round_constant[BLOCK_SIZE];
-    word_t q_round_constant[BLOCK_SIZE];
-    memset(p_round_constant, 0, sizeof(p_round_constant));
-    memset(q_round_constant, 0, sizeof(q_round_constant));
+    // word_t p_round_constant[BLOCK_SIZE];
+    // word_t q_round_constant[BLOCK_SIZE];
+    // memset(p_round_constant, 0, sizeof(p_round_constant));
+    // memset(q_round_constant, 0, sizeof(q_round_constant));
 
     word_t bs_m64_m[BLOCK_SIZE];
     word_t bs_m64_hm[BLOCK_SIZE];
@@ -2257,35 +2308,8 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
     // printf("\ninput \n");
     // printArray(input);
 
-    uint8_t bit_index = 0; 
-    const word_t P_ROUND_INITIAL_CONSTANT = 0x7060504030201000ULL;
-    const word_t Q_ROUND_INITIAL_CONSTANT = 0x8f9fafbfcfdfefffULL;
-    const int COLUMN_SIZE_BITS = 64; // 64 bits per groestl docs
-
-    word_t P_ROUND_CONSTANT = 0;
-    word_t Q_ROUND_CONSTANT = 0;
     for (round = 0; round < 10; round++)
     {
-        P_ROUND_CONSTANT = P_ROUND_INITIAL_CONSTANT ;
-        Q_ROUND_CONSTANT = Q_ROUND_INITIAL_CONSTANT;
-        memset(bs_p_round_constant_minimal, 0, sizeof(bs_p_round_constant_minimal));
-        memset(bs_q_round_constant_minimal, 0xff, sizeof(bs_q_round_constant_minimal));
-
-        // bit sliced round constants
-        // one isthe simpler way to just transpose the round constant matrix and the other is to do it manually in a complicated way in an effort to optimize it.
-        // bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
-        for (int byte_index = 0; byte_index < 8; byte_index++) { // byte index into the P_ROUND_INITIAL_CONSTANT
-            u8 byte_constant =  (P_ROUND_CONSTANT >> (8 * byte_index)) & 0xFF;// we take a byte out of the 64 bit constant. 
-            byte_constant = byte_constant ^ round;
-            // now we convert the bits in the byte constant to indices in the bit sliced array
-            for (bit_index = 0; bit_index < 8; bit_index++){
-                if (byte_constant & (1 << bit_index)){
-                   // printf("round: %d, bit_index: %d\n", round, bit_index);
-                    int index_into_bs_p_round_constant = byte_index * COLUMN_SIZE_BITS + bit_index;
-                    bs_p_round_constant_minimal[index_into_bs_p_round_constant] = 0xffffffffffffffffULL;
-                }
-            }
-        }
 
         // for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
         //     if (bs_p_round_constant[word_index] != bs_p_round_constant_minimal[word_index]){
@@ -2293,21 +2317,11 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
         //         print_word_in_hex_and_binary(bs_p_round_constant[word_index]);
         //     }
         // }
+        memset(bs_p_round_constant, 0, sizeof(bs_p_round_constant));
+        memset(bs_q_round_constant, 0xff, sizeof(bs_q_round_constant)); // setting to 0xff since we are XORing with 0xff in Q. reset start of every round.
 
-        for (int byte_index = 0; byte_index < 8; byte_index++) { // byte index into the P_ROUND_INITIAL_CONSTANT
-            u8 byte_constant =  (Q_ROUND_CONSTANT >> (8 * byte_index)) & 0xFF;// we take a byte out of the 64 bit constant. 
-            byte_constant = byte_constant ^ round;
-            // now we convert the bits in the byte constant to indices in the bit sliced array
-            for (bit_index = 0; bit_index < 8; bit_index++){
-                if ((byte_constant & (1 << bit_index)) == 0){
-                   // printf("round: %d, bit_index: %d\n", round, bit_index);
-                    // since the Q round constants 0x8f9fafbfcfdfefffULL are XORed to the MSBs of the 64 bit columns we add 56(i know weird number). See groestl docs, page 9.
-                    int index_into_bs_q_round_constant = byte_index * COLUMN_SIZE_BITS + bit_index + 56;
-                    // bs_q_round_constant_minimal[index_into_bs_q_round_constant] = 0xffffffffffffffffULL;
-                    bs_q_round_constant_minimal[index_into_bs_q_round_constant] = 0x0000000000000ULL;
-                }
-            }
-        }
+        bs_generate_roundc_matrix_p_minimal(bs_p_round_constant, round);
+        bs_generate_roundc_matrix_q_minimal(bs_q_round_constant, round);
 
         // for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
         //     if (bs_q_round_constant[word_index] != bs_q_round_constant_minimal[word_index]){
@@ -2322,8 +2336,8 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
 
         // XOR with round constants
         for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
-            bs_m64_m[word_index] ^= bs_q_round_constant_minimal[word_index]; // for Q
-           bs_m64_hm[word_index] ^= bs_p_round_constant_minimal[word_index]; // for P
+            bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
+           bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
         }
 
         // P 

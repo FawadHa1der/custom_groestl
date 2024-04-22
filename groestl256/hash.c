@@ -89,17 +89,10 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
 
 /* apply the output transformation of short variants */
 void bs_OutputTransformation512(word_t *state) {
-  int i;
-  long long *m64_h, tmp1[COLS512], tmp2[COLS512];
 
     word_t bs_p_round_constant[BLOCK_SIZE];
-    word_t bs_q_round_constant[BLOCK_SIZE];
-
-    memset(bs_p_round_constant, 0, BLOCK_SIZE);
-
     // word_t bs_m64_m[BLOCK_SIZE];
     word_t bs_m64_hm[BLOCK_SIZE];
-
 
     for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
         // bs_m64_m[word_index] = input[word_index];
@@ -108,7 +101,8 @@ void bs_OutputTransformation512(word_t *state) {
 
     for (word_t round = 0; round < 10; round++)
     {
-        bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
+        memset(bs_p_round_constant, 0, sizeof (bs_p_round_constant));
+        bs_generate_roundc_matrix_p_minimal(bs_p_round_constant, round);
         // XOR with round constants
         for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
             bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
