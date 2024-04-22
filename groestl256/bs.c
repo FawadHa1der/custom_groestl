@@ -1,6 +1,7 @@
 
 #include <string.h>
 #include "bs.h"
+#include <pthread.h>
 
 #if (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) ||\
         defined(__amd64__) || defined(__amd32__)|| defined(__amd16__)
@@ -2271,14 +2272,56 @@ void bs_generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_cons
         //     }
         // }
 }
+typedef struct {
+    word_t * bs_m64_m;   // Pointer to the current message block
+    pthread_t thread_id;        // Thread ID
+    // ... any other arguments needed for processing ...
+} ThreadArgs;
+
+ThreadArgs *setup_thread_args(ThreadArgs *args, word_t * bs_m64_m ) {
+    if (bs_m64_m == NULL) {
+        // Handle memory allocation failure
+        printf("msg block nill");
+    }
+    args->bs_m64_m = bs_m64_m;
+    return args;
+}
+
+void process_round_q(ThreadArgs* args) {
+    word_t * bs_m64_m = args->bs_m64_m;
+    word_t round = 0;
+    word_t bs_q_round_constant[BLOCK_SIZE];
+    int word_index =0;
+
+    for (round = 0; round < 10; round++)
+    {
+
+        memset(bs_q_round_constant, 0xff, sizeof(bs_q_round_constant)); // setting to 0xff since we are XORing with 0xff in Q. reset start of every round.
+        bs_generate_roundc_matrix_q_minimal(bs_q_round_constant, round);
+
+
+        // non bit sliced
+        // generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
+
+        // XOR with round constants
+        for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+            bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
+        }
+
+
+        // Q
+        bs_apply_sbox(bs_m64_m);
+        bs_shiftrows_q(bs_m64_m);
+        bs_mixbytes(bs_m64_m);
+
+    }
+}
 
 void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
 {
     word_t round = 0;
     word_t bs_p_round_constant[BLOCK_SIZE];
-    word_t bs_q_round_constant[BLOCK_SIZE];
-
-
+   // word_t bs_q_round_constant[BLOCK_SIZE];
 
     // word_t p_round_constant[BLOCK_SIZE];
     // word_t q_round_constant[BLOCK_SIZE];
@@ -2287,26 +2330,32 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
 
     word_t bs_m64_m[BLOCK_SIZE];
     word_t bs_m64_hm[BLOCK_SIZE];
+
     memset(bs_m64_m, 0, sizeof(bs_m64_m));
     memset(bs_m64_hm, 0, sizeof(bs_m64_hm));
 
     int word_index =0;
+    ThreadArgs threads_args;
+
 
     for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
         bs_m64_m[word_index] = input[word_index];
         bs_m64_hm[word_index] = state[word_index] ^ bs_m64_m[word_index];
     }
+
+    setup_thread_args(&threads_args, bs_m64_m);
+    pthread_create(&threads_args.thread_id, NULL, (void*)process_round_q, &threads_args);
+
     // printf("\ninput P before xor with round constant\n");
     // printArray(bs_m64_hm);
 
     // printf("\ninput Q before xor with round constant\n");
     // printArray(bs_m64_m);
 
-    word_t bs_tmp_copy[BLOCK_SIZE];
-    memset(bs_tmp_copy, 0, sizeof(bs_tmp_copy));
-
     // printf("\ninput \n");
     // printArray(input);
+    // setup_thread_args(&threads_args[block_index], msg + (block_index * SIZE512), block_index);
+    // pthread_create(&threads_args[block_index].thread_id, NULL, (void*)ProcessBlock, &threads_args[block_index]);
 
     for (round = 0; round < 10; round++)
     {
@@ -2318,10 +2367,10 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
         //     }
         // }
         memset(bs_p_round_constant, 0, sizeof(bs_p_round_constant));
-        memset(bs_q_round_constant, 0xff, sizeof(bs_q_round_constant)); // setting to 0xff since we are XORing with 0xff in Q. reset start of every round.
+        // memset(bs_q_round_constant, 0xff, sizeof(bs_q_round_constant)); // setting to 0xff since we are XORing with 0xff in Q. reset start of every round.
 
         bs_generate_roundc_matrix_p_minimal(bs_p_round_constant, round);
-        bs_generate_roundc_matrix_q_minimal(bs_q_round_constant, round);
+        // bs_generate_roundc_matrix_q_minimal(bs_q_round_constant, round);
 
         // for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
         //     if (bs_q_round_constant[word_index] != bs_q_round_constant_minimal[word_index]){
@@ -2336,7 +2385,7 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
 
         // XOR with round constants
         for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
-            bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
+            // bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
            bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
         }
 
@@ -2345,12 +2394,14 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
         bs_shiftrows_p(bs_m64_hm);
         bs_mixbytes(bs_m64_hm);
 
-        // Q
-        bs_apply_sbox(bs_m64_m);
-        bs_shiftrows_q(bs_m64_m);
-        bs_mixbytes(bs_m64_m);
+        // // Q
+        // bs_apply_sbox(bs_m64_m);
+        // bs_shiftrows_q(bs_m64_m);
+        // bs_mixbytes(bs_m64_m);
 
     }
+
+    pthread_join(threads_args.thread_id, NULL);
 
     // printf("\nQ bs_m64_m before XOR with state  \n");
     // printArray(bs_m64_m);
