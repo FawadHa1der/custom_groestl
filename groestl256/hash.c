@@ -64,7 +64,7 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
         }
         else
         {
-            memset(input_space,0,BS_BLOCK_SIZE);
+         //   memset(input_space,0,BS_BLOCK_SIZE);
             memcpy(input_space, msg +  offset, BS_BLOCK_SIZE);
 
             /////////only for test, remove///////////
@@ -364,12 +364,13 @@ int main(int argc, char **argv) {
     fread(hostData, sizeof(unsigned char), dataSize, file);
     fclose(file);
 
+
     clock_t start, end;
     double cpu_time_used;
 
     start = clock();
 
-    const char* message = "my message";
+    const char* message = "my message gdfjhghjkfdhgjklfdshgjklfdhgjkfdshkfjsdhgjfdlshgjkfdsghfjdklhgjfkdlghfjdkslhgfdjksgsdfhj    dsdscxcd3232322cc";
     size_t size = strlen(message);
 
     unsigned char* data = (unsigned char*)malloc(size + (SIZE512 * 2));

@@ -560,14 +560,23 @@ void bs_transpose(word_t * blocks)
     word_t transpose[BLOCK_SIZE];
     memset(transpose, 0, sizeof(transpose));
     bs_transpose_dst(transpose,blocks);
-   // memmove(blocks,transpose,sizeof(transpose));
+    int sizeof_transpose = sizeof(transpose);
 
-   // TODO : cleanup
+    // memmove(blocks,transpose,sizeof(transpose));
+
+    // TODO : cleanup
 
     // note to do rev transpose and make sure we get the same result
     word_t transpose_rev[BLOCK_SIZE];
+    int sizeof_transpose_rev = sizeof(transpose_rev);
+
     memset(transpose_rev, 0, sizeof(transpose_rev));
     memcpy(transpose_rev, transpose, sizeof(transpose_rev));
+    if (sizeof_transpose != sizeof_transpose_rev){
+        printf("\nERROOOOOOOOOOOOOOOOOR\n");
+        printf("sizeof_transpose != sizeof_transpose_rev\n");
+    }
+    
     bs_transpose_rev(transpose_rev);
 
     for (int i = 0; i < BLOCK_SIZE; i++){
@@ -577,24 +586,25 @@ void bs_transpose(word_t * blocks)
         }
     }
 
-   memmove(blocks,transpose,sizeof(transpose));
+//   memmove(blocks,transpose,sizeof(transpose));
+   memcpy(blocks,transpose,sizeof(transpose));
 
 }
 
 void bs_transpose_dst(word_t * transpose, word_t * blocks)
 {
-    int i,k;
+    word_t i,k;
     word_t w;
     for(k=0; k < WORD_SIZE; k++)
     {
-        int bitpos = ONE << k;
+        word_t bitpos = ONE << k;
         for (i=0; i < WORDS_PER_BLOCK; i++)
         {
             w = bs2le(blocks[k * WORDS_PER_BLOCK + i]);
-            int offset = i << MUL_SHIFT;
+            word_t offset = i << MUL_SHIFT;
 
 #ifndef UNROLL_TRANSPOSE
-            int j;
+            word_t j;
             for(j=0; j < WORD_SIZE; j++)
             {
                 // TODO make const time
@@ -681,7 +691,7 @@ void bs_transpose_dst(word_t * transpose, word_t * blocks)
 
 void bs_transpose_rev(word_t * blocks)
 {
-    int i,k;
+    word_t i,k;
     word_t w;
     word_t transpose[BLOCK_SIZE];
     memset(transpose, 0, sizeof(transpose));
@@ -691,7 +701,7 @@ void bs_transpose_rev(word_t * blocks)
         word_t bitpos = bs2be(ONE << (k % WORD_SIZE));
         word_t offset = k / WORD_SIZE;
 #ifndef UNROLL_TRANSPOSE
-        int j;
+        word_t j;
         for(j=0; j < WORD_SIZE; j++)
         {
             word_t bit = (w & (ONE << j)) ? (ONE << (k % WORD_SIZE)) : 0;
@@ -770,7 +780,8 @@ void bs_transpose_rev(word_t * blocks)
 #endif
 #endif
     }
-    memmove(blocks,transpose,sizeof(transpose));
+//    memmove(blocks,transpose,sizeof(transpose));
+    memcpy(blocks,transpose,sizeof(transpose));
 }
 
 
@@ -2308,6 +2319,7 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
     // printf("\ninput \n");
     // printArray(input);
 
+    // technically P/Q can be parralelized from here but there does not seem to be much performance gain. Check branch bs_multithreaded
     for (round = 0; round < 10; round++)
     {
 
