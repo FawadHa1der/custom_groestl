@@ -566,28 +566,28 @@ void bs_transpose(word_t * blocks)
 
     // TODO : cleanup
 
-    // note to do rev transpose and make sure we get the same result
-    word_t transpose_rev[BLOCK_SIZE];
-    int sizeof_transpose_rev = sizeof(transpose_rev);
+    // word_t transpose_rev[BLOCK_SIZE];
+    // // note to do rev transpose and make sure we get the same result
+    // int sizeof_transpose_rev = sizeof(transpose_rev);
 
-    memset(transpose_rev, 0, sizeof(transpose_rev));
-    memcpy(transpose_rev, transpose, sizeof(transpose_rev));
-    if (sizeof_transpose != sizeof_transpose_rev){
-        printf("\nERROOOOOOOOOOOOOOOOOR\n");
-        printf("sizeof_transpose != sizeof_transpose_rev\n");
-    }
+    // memset(transpose_rev, 0, sizeof(transpose_rev));
+    // memcpy(transpose_rev, transpose, sizeof(transpose_rev));
+    // if (sizeof_transpose != sizeof_transpose_rev){
+    //     printf("\nERROOOOOOOOOOOOOOOOOR\n");
+    //     printf("sizeof_transpose != sizeof_transpose_rev\n");
+    // }
     
-    bs_transpose_rev(transpose_rev);
+    // bs_transpose_rev(transpose_rev);
 
-    for (int i = 0; i < BLOCK_SIZE; i++){
-        if (blocks[i] != transpose_rev[i]){
-            printf("\nERROOOOOOOOOOOOOOOOOR\n");
-            printf("transpose[%d] != transpose_rev[%d]\n", i, i);
-        }
-    }
+    // for (int i = 0; i < BLOCK_SIZE; i++){
+    //     if (blocks[i] != transpose_rev[i]){
+    //         printf("\nERROOOOOOOOOOOOOOOOOR\n");
+    //         printf("transpose[%d] != transpose_rev[%d]\n", i, i);
+    //     }
+    // }
 
-//   memmove(blocks,transpose,sizeof(transpose));
-   memcpy(blocks,transpose,sizeof(transpose));
+   memmove(blocks,transpose,sizeof(transpose));
+//   memcpy(blocks,transpose,sizeof(transpose));
 
 }
 

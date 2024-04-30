@@ -55,7 +55,7 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
         if (size_left < BS_BLOCK_SIZE)
         {
             memcpy(input_space, msg +  offset, BS_BLOCK_SIZE);
-           bs_transpose(input_space);
+            bs_transpose(input_space);
 
             bs_cipher(bs_state, input_space);
             offset += BS_BLOCK_SIZE;
@@ -66,12 +66,6 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
         {
          //   memset(input_space,0,BS_BLOCK_SIZE);
             memcpy(input_space, msg +  offset, BS_BLOCK_SIZE);
-
-            /////////only for test, remove///////////
-
-            // bs_transpose(msg);
-            // bs_transpose_rev(msg);
-            ////////////////////
             bs_transpose(input_space);
             bs_cipher(bs_state, input_space); // output state is in bs_state
             // memmove(outputb, input_space, size);
@@ -118,7 +112,6 @@ void bs_OutputTransformation512(word_t *state) {
     for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
       state[word_index] = state[word_index] ^ bs_m64_hm[word_index];
     }
-
 }
 
 /* initialise context */
@@ -224,6 +217,7 @@ HashReturn Update(hashState* ctx,
   // printArray(transformedInput);
 
   Transform512Combined(transformedOutput, transformedInput, msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
+  printAllResultsHashes(transformedOutput, completeBlockCounter);
 
 /*****************************/
   // prev call below
@@ -231,10 +225,12 @@ HashReturn Update(hashState* ctx,
   return SUCCESS;
 }
 
-void printAllResultsHashes(word_t* array) {
+void printAllResultsHashes(word_t* array, int block_counter) {
   int i;
-  for (i = 0; i < BLOCK_SIZE ; i+= 8) {
+  for (i = 0; i < BLOCK_SIZE ; i+= 8 * block_counter) {
  //   printf("%016llx", array[i]); // Print as 64-bit hexadecimal
+//    result_block_index = i * block_counter;
+
     printf("\n Result hash for %d\n", i/8);
     printHexArray(&array[i], 64);// i-4 because last 256 bits contain the answer
 
@@ -254,8 +250,6 @@ HashReturn Final(hashState* ctx, u32* input,
 		 BitSequence* output) {
   int i, j = 0, hashbytelen = ctx->hashbitlen/8;
   u8 *s = input;
-
-  printAllResultsHashes(input);
 
   /* store hash result in output */
   for (i = ctx->statesize-hashbytelen; i < ctx->statesize; i++,j++) {
