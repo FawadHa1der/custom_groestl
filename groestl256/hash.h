@@ -84,5 +84,7 @@ HashReturn Hash(int, const BitSequence*, DataLength, BitSequence*);
 void printAllResultsHashes(word_t* array, int block_counter);
 /* helper functions */
 void PrintHash(const BitSequence*, int);
+void printHexArray(unsigned char *array, uint size);
+int crypto_hash(unsigned char *out, const unsigned char *in, unsigned long long inlen);
 
 #endif /* __hash_h */
