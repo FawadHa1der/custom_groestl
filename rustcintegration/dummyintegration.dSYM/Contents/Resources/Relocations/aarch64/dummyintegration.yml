@@ -1,0 +1,10 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/fawad/ethapps/custom_groestl/rustcintegration/dummyintegration'
+relocations:
+  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100003D28, symSize: 0xDC }
+  - { offsetInCU: 0x7D, offset: 0x7D, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100003D28, symSize: 0xDC }
+  - { offsetInCU: 0x26, offset: 0x17A, size: 0x8, addend: 0x0, symName: _printHexArray, symObjAddr: 0x0, symBinAddr: 0x100003E04, symSize: 0x84 }
+  - { offsetInCU: 0x41, offset: 0x195, size: 0x8, addend: 0x0, symName: _printHexArray, symObjAddr: 0x0, symBinAddr: 0x100003E04, symSize: 0x84 }
+  - { offsetInCU: 0x81, offset: 0x1D5, size: 0x8, addend: 0x0, symName: _crypto_hash, symObjAddr: 0x84, symBinAddr: 0x100003E88, symSize: 0x38 }
+...
