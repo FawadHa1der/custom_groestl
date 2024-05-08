@@ -555,7 +555,7 @@ void bs_sbox(word_t *U)
     // memmove(U,S,sizeof(S));
 }
 
-void bs_transpose(word_t * blocks)
+void bs_transpose(word_t * blocks, word_t width_to_adjacent_block)
 {
     word_t transpose[BLOCK_SIZE];
     memset(transpose, 0, sizeof(transpose));
@@ -591,7 +591,10 @@ void bs_transpose(word_t * blocks)
 
 }
 
-void bs_transpose_dst(word_t * transpose, word_t * blocks)
+
+// since all the input is sequential we need to find the next block from the adjacent data block in the sequetial input. 
+// for example if every data point is onnly one block deep. then width_to_adjacent_block = 1. if every data point is 2 blocks deep then width_to_adjacent_block = 2.
+void bs_transpose_dst(word_t * transpose, word_t * blocks, word_t width_to_adjacent_block)
 {
     word_t i,k;
     word_t w;
@@ -600,7 +603,7 @@ void bs_transpose_dst(word_t * transpose, word_t * blocks)
         word_t bitpos = ONE << k;
         for (i=0; i < WORDS_PER_BLOCK; i++)
         {
-            w = bs2le(blocks[k * WORDS_PER_BLOCK + i]);
+            w = bs2le(blocks[k * WORDS_PER_BLOCK * width_to_adjacent_block + i]);
             word_t offset = i << MUL_SHIFT;
 
 #ifndef UNROLL_TRANSPOSE
@@ -689,7 +692,8 @@ void bs_transpose_dst(word_t * transpose, word_t * blocks)
     }
 }
 
-void bs_transpose_rev(word_t * blocks)
+// width_to_adjacent_block should be the same it was transposed with
+void bs_transpose_rev(word_t * blocks, word_t width_to_adjacent_block)
 {
     word_t i,k;
     word_t w;
@@ -705,7 +709,7 @@ void bs_transpose_rev(word_t * blocks)
         for(j=0; j < WORD_SIZE; j++)
         {
             word_t bit = (w & (ONE << j)) ? (ONE << (k % WORD_SIZE)) : 0;
-            transpose[j * WORDS_PER_BLOCK + (offset)] |= bit;
+            transpose[j * WORDS_PER_BLOCK * width_to_adjacent_block + (offset)] |= bit;
         }
 #else
         transpose[0  * WORDS_PER_BLOCK + (offset )] |= (w & (ONE << 0 )) ? bitpos : 0;

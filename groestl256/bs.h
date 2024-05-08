@@ -41,9 +41,9 @@
 #error "invalid word size"
 #endif
 
-void bs_transpose(word_t * blocks);
-void bs_transpose_rev(word_t * blocks);
-void bs_transpose_dst(word_t * transpose, word_t * blocks);
+void bs_transpose(word_t * blocks, word_t width_to_adjacent_block);
+void bs_transpose_rev(word_t * blocks, word_t width_to_adjacent_block);
+void bs_transpose_dst(word_t * transpose, word_t * blocks, word_t width_to_adjacent_block);
 
 void bs_sbox(word_t U[8]);
 void bs_sbox_rev(word_t U[8]);

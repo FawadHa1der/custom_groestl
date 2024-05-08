@@ -56,7 +56,6 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
         {
             memcpy(input_space, msg +  offset, BS_BLOCK_SIZE);
             bs_transpose(input_space);
-
             bs_cipher(bs_state, input_space);
             offset += BS_BLOCK_SIZE;
             size_left -= BS_BLOCK_SIZE;
@@ -73,7 +72,6 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
             size_left -= BS_BLOCK_SIZE;
         }
     }
-
 
   bs_OutputTransformation512(bs_state);
   bs_transpose_rev(bs_state);
@@ -103,11 +101,9 @@ void bs_OutputTransformation512(word_t *state) {
         }
 
         // P 
-      bs_apply_sbox(bs_m64_hm);
-      bs_shiftrows_p(bs_m64_hm);
-      bs_mixbytes(bs_m64_hm);
-
-
+        bs_apply_sbox(bs_m64_hm);
+        bs_shiftrows_p(bs_m64_hm);
+        bs_mixbytes(bs_m64_hm);
     }
     for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
       state[word_index] = state[word_index] ^ bs_m64_hm[word_index];
@@ -139,6 +135,90 @@ HashReturn Init(hashState* ctx,
 
   return SUCCESS;
 }
+
+/* update state with databitlen bits of input */
+HashReturn update_binius_input(hashState* ctx,
+		                          const BitSequence* input,
+		                          DataLength individual_chunk_bit_length, 
+                              word_t total_data_length , word_t* transformedOutput) {
+  int index = 0;
+  const int msglen = (int)(individual_chunk_bit_length/8);
+  int newMsgLen = msglen;
+  uchar* byteInput = input;
+
+  ctx->block_counter = msglen / ctx->statesize;
+  byteInput[newMsgLen] = 0x80;
+  newMsgLen++;
+
+  const int remainder = (newMsgLen)%ctx->statesize;
+  int remainderIndex = remainder;
+  /* store remaining data in buffer */
+  if (remainderIndex > ctx->statesize - LENGTHFIELDLEN) {
+    // extra buffer
+    while (remainderIndex < ctx->statesize) {
+      byteInput[newMsgLen] = 0;
+      remainderIndex++;
+      newMsgLen++;
+    }
+    // newMsgLen = newMsgLen + (ctx->statesize - remainder);
+    remainderIndex = 0;
+    ctx->block_counter++;
+  }
+
+  while (remainderIndex < ctx->statesize-LENGTHFIELDLEN) {
+    byteInput[newMsgLen] = 0;
+    remainderIndex++;
+    newMsgLen++;
+  }
+  ctx->block_counter++;
+
+  // byteInput[newMsgLen + (remainderIndex -1 )] = (u8)ctx->block_counter;
+  newMsgLen += LENGTHFIELDLEN;
+
+  int lengthPad = LENGTHFIELDLEN;
+  int lengthPadIndex = 1;
+
+  const int completeBlockCounter =  ctx->block_counter; // ctx->block_counter gets modiefied below so storing in a  temp var here
+  while (lengthPadIndex <= LENGTHFIELDLEN) {
+    byteInput[newMsgLen - lengthPadIndex] = (u8)ctx->block_counter;
+    lengthPadIndex++;
+    ctx->block_counter >>= 8;
+  }
+  /***********************START OF MESSAGE REPLICATION?TRANSFORMATION JUST FOR TESTING*/
+  // printf("\n early early Input: \n");
+  // printArray(input);
+
+  int msgLenWithPadding = completeBlockCounter * ctx->statesize;
+  const int NO_OF_PARALLEL_INPUTS = WORD_SIZE;
+
+  uchar* transformedInput = malloc(msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
+  memset(transformedInput, 0, msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
+
+  u8* combinedTransformedOutput8 =transformedOutput;
+  
+  for (int transformIndex = 0; transformIndex < NO_OF_PARALLEL_INPUTS; transformIndex++) {
+    // first block of all the parallel inputs are placed first and then the second blocks for all the parallel inputs and so on
+    for (int blockIndex = 0; blockIndex < completeBlockCounter; blockIndex++) {
+      // ctx->statesize should be equal to 64 or msgLenWithPadding/ ctx->block_counter
+      memcpy(transformedInput + ((transformIndex * msgLenWithPadding) + (ctx->statesize * blockIndex)), input + (ctx->statesize * blockIndex) ,  ctx->statesize);
+    }
+  }
+  // printf("\n print all input to see if its copied correctly: \n");
+  // printAllResultsHashes(transformedInput);
+
+  // printf("\n Input after replication: \n");
+  // printArray(transformedInput);
+
+  Transform512Combined(transformedOutput, transformedInput, msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
+  printAllResultsHashes(transformedOutput, completeBlockCounter);
+
+/*****************************/
+  // prev call below
+  // Transform(transformedOutput, input, newMsgLen);
+  return SUCCESS;
+}
+
+
 
 /* update state with databitlen bits of input */
 HashReturn Update(hashState* ctx,
@@ -205,10 +285,6 @@ HashReturn Update(hashState* ctx,
       // ctx->statesize should be equal to 64 or msgLenWithPadding/ ctx->block_counter
       memcpy(transformedInput + ((transformIndex * msgLenWithPadding) + (ctx->statesize * blockIndex)), input + (ctx->statesize * blockIndex) ,  ctx->statesize);
     }
-      // // not the best logic, it reolicates the the first 64 bytes of transformedOutput itself to rest of 63 blocks. basically
-      // combinedTransformedOutput8 += ctx->statesize; // temp cast
-      // memcpy(combinedTransformedOutput8, transformedOutput )
-      // combinedTransformedOutput8[2*ctx->columns-1] = U32BIG((u32)ctx->hashbitlen);
   }
   // printf("\n print all input to see if its copied correctly: \n");
   // printAllResultsHashes(transformedInput);
@@ -228,18 +304,8 @@ HashReturn Update(hashState* ctx,
 void printAllResultsHashes(word_t* array, int block_counter) {
   int i;
   for (i = 0; i < BLOCK_SIZE ; i+= 8 * block_counter) {
- //   printf("%016llx", array[i]); // Print as 64-bit hexadecimal
-//    result_block_index = i * block_counter;
-
     printf("\n Result hash for %d\n", i/8);
     printHexArray(&array[i], 64);// i-4 because last 256 bits contain the answer
-
-    // for (int j = i; j < i + WORDS_PER_BLOCK; j++) {
-    //   printf("%016llx", array[j]); // Print as 64-bit hexadecimal
-    // }
-    // if (i < 7) {
-    //   printf(", ");
-    // }
   }
 }
 
@@ -264,6 +330,50 @@ HashReturn Final(hashState* ctx, u32* input,
   // free(ctx->buffer);
   return SUCCESS;
 }
+
+
+/// for integration with binius rust input
+/* hash bit sequence */
+HashReturn Hash_binius_input(int hashbitlen,
+		const BitSequence* data, 
+		DataLength databitlen,
+		BitSequence* hashval,
+    word_t* result_hashes) {
+
+  HashReturn ret;
+  hashState context;
+
+  /* initialise */
+  if ((ret = Init(&context, hashbitlen)) != SUCCESS)
+    return ret;
+
+  word_t *combinedTransformedOutput = malloc(context.statesize * WORD_SIZE);// [64* BLOCK_SIZE];
+  memset(combinedTransformedOutput, 0, context.statesize * WORD_SIZE);
+
+  u32* combinedTransformedOutput32 = combinedTransformedOutput; // temp cast
+  /* allocate memory for state and data buffer */
+
+  // set context.hashbitlen in all of the blocks that are copied
+  for (int block = 0; block < WORD_SIZE; block++) {
+    combinedTransformedOutput32[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
+    combinedTransformedOutput32 += context.statesize/sizeof(u32);
+  }
+ // combinedTransformedOutput32[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
+
+  /* process message */
+  if ((ret = Update(&context, data, databitlen, combinedTransformedOutput)) != SUCCESS)
+    return ret;
+
+  /* finalise */
+  ret = Final(&context, combinedTransformedOutput, hashval);
+
+
+  free(combinedTransformedOutput); 
+
+  return ret;
+}
+
+/////
 
 /* hash bit sequence */
 HashReturn Hash(int hashbitlen,
@@ -329,8 +439,31 @@ void printHexArray(unsigned char *array, uint size) {
     printf("\n");
 }
 
+////////////////////////////////////////RUST INTEGRATION///////////////////////////
 
+void process_packed_array(PackedPrimitiveType *array, size_t total_length, size_t chunk_size)  {
+  printf("incoming size id: %d", total_length);        
+  for (size_t i = 0; i < total_length; i++) {
+      // Example processing
+      // Accessing high and low parts of a 128-bit integer
+      uint64_t high_part = array[i].value.high;
+      uint64_t low_part = array[i].value.low;
+      if (i < 10){
+        printf("High: %" PRIu64 ", Low: %" PRIu64 "\n", high_part, low_part);        
+      }
+  }
+}
 
+void populate_scaled_packed_fields(ScaledPackedField *array, size_t length) {
+    for (size_t i = 0; i < length; i++) {
+        for (size_t j = 0; j < 2; j++) {  // Assuming N=2
+            array[i].elements[j].value.high = i + j;  // Example logic
+            array[i].elements[j].value.low = i + j + 100;  // Example logic
+        }
+    }
+}
+
+////////////////////////////////////////END OF RUST INTEGRATION///////////////////////////
 #else
 #error "MMX instructions must be enabled"
 #endif /* __MMX__ */

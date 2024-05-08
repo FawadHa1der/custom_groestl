@@ -87,4 +87,26 @@ void PrintHash(const BitSequence*, int);
 void printHexArray(unsigned char *array, uint size);
 int crypto_hash(unsigned char *out, const unsigned char *in, unsigned long long inlen);
 
+
+
+
+
+/////////////////RUST INTEGRATION/////////////////////
+typedef struct {
+    uint64_t low;
+    uint64_t high;
+} M128;
+
+typedef struct {
+    M128 value;
+} PackedPrimitiveType;
+
+typedef struct {
+    PackedPrimitiveType elements[2]; // For N=2
+} ScaledPackedField;
+
+void process_packed_array(PackedPrimitiveType *array, size_t total_length, size_t chunk_size) ;
+void populate_scaled_packed_fields(ScaledPackedField *array, size_t length);
+///////////////////END OF RUST INTEGRATION/////////////////////
+
 #endif /* __hash_h */
