@@ -559,7 +559,7 @@ void bs_transpose(word_t * blocks, word_t width_to_adjacent_block)
 {
     word_t transpose[BLOCK_SIZE];
     memset(transpose, 0, sizeof(transpose));
-    bs_transpose_dst(transpose,blocks);
+    bs_transpose_dst(transpose,blocks, width_to_adjacent_block);
     int sizeof_transpose = sizeof(transpose);
 
     // memmove(blocks,transpose,sizeof(transpose));
@@ -2179,8 +2179,8 @@ void bs_generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_cons
 
         }
         
-        bs_transpose(p_round_constant);
-        bs_transpose(q_round_constant);
+        bs_transpose(p_round_constant,1);
+        bs_transpose(q_round_constant,1);
         return; // TODO remove this and check the code below
 
 

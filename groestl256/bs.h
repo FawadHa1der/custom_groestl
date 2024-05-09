@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define BLOCK_SIZE          512
+#define BLOCK_SIZE_BYTES    (BLOCK_SIZE / 8)
 // #define KEY_SCHEDULE_SIZE   176
 #define WORD_SIZE           64
 #define BS_BLOCK_SIZE       (BLOCK_SIZE * WORD_SIZE / 8)

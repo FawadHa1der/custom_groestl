@@ -36,8 +36,8 @@ void printHexArray(unsigned char *array, uint size);
 // total msglen in bytes
 int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
 
-  u64 *msg_64;
-  int offset = 0;
+   u64 *msg_64;
+   int offset = 0;
 
     word_t input_space[BLOCK_SIZE]; // gets bitsliced soon after copy
     // word_t bs_input_space[BLOCK_SIZE];
@@ -48,7 +48,7 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
     // word_t * state = (word_t *)outputb;
 
     // bs_expand_key(rk, key);
-    bs_transpose(bs_state);
+    bs_transpose(bs_state, 1);
 
     while (size_left > 0)
     {
@@ -74,7 +74,7 @@ int Transform512Combined(word_t *bs_state, const u8 *msg, int msglen) {
     }
 
   bs_OutputTransformation512(bs_state);
-  bs_transpose_rev(bs_state);
+  bs_transpose_rev(bs_state,1);
   // return 0;
 }
 
@@ -138,12 +138,13 @@ HashReturn Init(hashState* ctx,
 
 /* update state with databitlen bits of input */
 HashReturn update_binius_input(hashState* ctx,
-		                          const BitSequence* input,
-		                          DataLength individual_chunk_bit_length, 
-                              word_t total_data_length , word_t* transformedOutput) {
-  int index = 0;
-  const int msglen = (int)(individual_chunk_bit_length/8);
-  int newMsgLen = msglen;
+		                          const uchar* input,
+		                          word_t individual_chunk_byte_length, 
+                              word_t total_data_length , 
+                              word_t* transformed_output) {
+  // int index = 0;
+  const word_t msglen = individual_chunk_byte_length;
+  word_t newMsgLen = msglen;
   uchar* byteInput = input;
 
   ctx->block_counter = msglen / ctx->statesize;
@@ -194,23 +195,23 @@ HashReturn update_binius_input(hashState* ctx,
   uchar* transformedInput = malloc(msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
   memset(transformedInput, 0, msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
 
-  u8* combinedTransformedOutput8 =transformedOutput;
+  u8* combinedtransformed_output8 =transformed_output;
   
-  for (int transformIndex = 0; transformIndex < NO_OF_PARALLEL_INPUTS; transformIndex++) {
-    // first block of all the parallel inputs are placed first and then the second blocks for all the parallel inputs and so on
-    for (int blockIndex = 0; blockIndex < completeBlockCounter; blockIndex++) {
-      // ctx->statesize should be equal to 64 or msgLenWithPadding/ ctx->block_counter
-      memcpy(transformedInput + ((transformIndex * msgLenWithPadding) + (ctx->statesize * blockIndex)), input + (ctx->statesize * blockIndex) ,  ctx->statesize);
-    }
-  }
+  // for (int transformIndex = 0; transformIndex < NO_OF_PARALLEL_INPUTS; transformIndex++) {
+  //   // first block of all the parallel inputs are placed first and then the second blocks for all the parallel inputs and so on
+  //   for (int blockIndex = 0; blockIndex < completeBlockCounter; blockIndex++) {
+  //     // ctx->statesize should be equal to 64 or msgLenWithPadding/ ctx->block_counter
+  //     memcpy(transformedInput + ((transformIndex * msgLenWithPadding) + (ctx->statesize * blockIndex)), input + (ctx->statesize * blockIndex) ,  ctx->statesize);
+  //   }
+  // }
   // printf("\n print all input to see if its copied correctly: \n");
   // printAllResultsHashes(transformedInput);
 
   // printf("\n Input after replication: \n");
   // printArray(transformedInput);
 
-  Transform512Combined(transformedOutput, transformedInput, msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
-  printAllResultsHashes(transformedOutput, completeBlockCounter);
+  Transform512Combined(transformed_output, transformedInput, msgLenWithPadding * NO_OF_PARALLEL_INPUTS);
+  printAllResultsHashes(transformed_output, completeBlockCounter);
 
 /*****************************/
   // prev call below
@@ -332,43 +333,110 @@ HashReturn Final(hashState* ctx, u32* input,
 }
 
 
+// if the chunk_size is less than block_size then we need to create a new buffer so that we can all the chunks of BLOCK_SIZE which are zeroed for missing data.
+// output_buffer should be pre allocated. and every data slice should be of size BLOCK_SIZE
+void copy_input_buffer_with_min_block_size(uchar* input_buffer, int32_t complete_data_length_bytes, int32_t chunk_length_bytes, uchar* output_buffer){
+  int32_t total_chunks = complete_data_length_bytes / chunk_length_bytes;
+  const int32_t block_size_bytes = BLOCK_SIZE/8;
+
+  if (chunk_length_bytes < BLOCK_SIZE) {
+    // uchar* new_buffer = malloc(total_data_length_in_bytes);
+    memset(output_buffer, 0, complete_data_length_bytes);
+
+    for (int i = 0; i < total_chunks; i++) {
+      memcpy(output_buffer + (i * block_size_bytes), input_buffer + (i * chunk_length_bytes), chunk_length_bytes);
+    }
+  }
+}
+
 /// for integration with binius rust input
 /* hash bit sequence */
-HashReturn Hash_binius_input(int hashbitlen,
-		const BitSequence* data, 
-		DataLength databitlen,
-		BitSequence* hashval,
-    word_t* result_hashes) {
+// 
+HashReturn Hash_binius_input(int hash_bit_len,
+                            const BitSequence* data,  // comlete data for all the parallel inputs, data coming from the caller, should never be freed by this program or modified
+                            const word_t complete_data_length_bytes,
+                            word_t chunk_length_bytes,
+                            BitSequence* hash_val,
+                            word_t* result_hashes) {
 
   HashReturn ret;
   hashState context;
 
-  /* initialise */
-  if ((ret = Init(&context, hashbitlen)) != SUCCESS)
-    return ret;
-
-  word_t *combinedTransformedOutput = malloc(context.statesize * WORD_SIZE);// [64* BLOCK_SIZE];
-  memset(combinedTransformedOutput, 0, context.statesize * WORD_SIZE);
-
-  u32* combinedTransformedOutput32 = combinedTransformedOutput; // temp cast
-  /* allocate memory for state and data buffer */
-
-  // set context.hashbitlen in all of the blocks that are copied
-  for (int block = 0; block < WORD_SIZE; block++) {
-    combinedTransformedOutput32[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
-    combinedTransformedOutput32 += context.statesize/sizeof(u32);
+  if (complete_data_length_bytes % chunk_length_bytes != 0) {
+    printf("ERROR: Data length is not a multiple of chunk length\n");
+    return FAIL;
   }
- // combinedTransformedOutput32[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
 
-  /* process message */
-  if ((ret = Update(&context, data, databitlen, combinedTransformedOutput)) != SUCCESS)
-    return ret;
+  // if chunk_length_bytes < BLOCK_SIZE then we need to create a new buffer so that we can have all the chunks of BLOCK_SIZE which are zeroed for missing data.
+  // output_buffer should be pre allocated. and every data slice should be of size BLOCK_SIZE_BYTES
 
-  /* finalise */
-  ret = Final(&context, combinedTransformedOutput, hashval);
+  uchar* new_complete_data_buffer = NULL; // be very careful with this buffer. It should be freed after use. may be try to figureotu a cleaner way to do this
+  if (chunk_length_bytes < BLOCK_SIZE_BYTES) {
+    uchar* new_complete_data_buffer = malloc(complete_data_length_bytes);
+    copy_input_buffer_with_min_block_size(data, complete_data_length_bytes, chunk_length_bytes, new_complete_data_buffer);
+    data = new_complete_data_buffer;
+    chunk_length_bytes = BLOCK_SIZE_BYTES;
+  }
+ 
+  // might have to spawn multiple threads here.
+  // for now just one thread
+  word_t  total_chunks = complete_data_length_bytes / chunk_length_bytes; // total chunks correspond to total groestl 256 hashes but not bitsliced instances.
+  word_t  top_level_instances =  total_chunks / WORD_SIZE ;  // this corresponds to bitsliced instances. Each instance will compute WORDS_SIZE parallel groestl hashes
 
+  const word_t remaining_data_length_bytes_bitsliced_window = (total_chunks % WORD_SIZE)? (total_chunks % WORD_SIZE) * chunk_length_bytes : 0; // TODO handle this case, may be just copy what we have to a new buffer and then call the function again
+  const word_t partial_empty_top_level_instance = top_level_instances;//the partial one will be the last one
+  if (remaining_data_length_bytes_bitsliced_window != 0) {
+    // append an extra top level bitsliced instance to process
+    top_level_instances++;
+    return FAIL;
+  }
 
-  free(combinedTransformedOutput); 
+  for (int instance = 0 ; instance < top_level_instances; instance++){
+    /* initialise */
+    if ((ret = Init(&context, hash_bit_len)) != SUCCESS)
+      return ret;
+
+    uchar* instance_data = data + (instance * WORD_SIZE * chunk_length_bytes);
+    word_t instance_data_length_bytes = WORD_SIZE * chunk_length_bytes;
+
+    word_t *bs_transformed_output = malloc(context.statesize * WORD_SIZE);// [64* BLOCK_SIZE];
+    memset(bs_transformed_output, 0, context.statesize * WORD_SIZE);
+
+    u32* bs_transformed_output32 = bs_transformed_output; // temp cast
+    // set context.hashbitlen in all of the blocks
+    for (int block = 0; block < WORD_SIZE; block++) {
+      bs_transformed_output32[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
+      bs_transformed_output32 += context.statesize/sizeof(u32);
+    }
+
+    uchar* instance_data_when_partial = malloc(instance_data_length_bytes);
+    memset(instance_data_when_partial, 0, instance_data_length_bytes);
+
+    if (remaining_data_length_bytes_bitsliced_window && (instance == partial_empty_top_level_instance)) {
+      // this is the last instance and it has less than WORD_SIZE chunks
+      // we need to copy the data to a new buffer and then call the function again
+      memcpy(instance_data_when_partial, instance_data, remaining_data_length_bytes_bitsliced_window);
+    }
+
+    /* process message */
+    if ((ret = update_binius_input(&context, instance_data, chunk_length_bytes, chunk_length_bytes * WORD_SIZE, bs_transformed_output)) != SUCCESS)
+      return ret;
+
+    if (instance_data_when_partial) {
+      free(instance_data_when_partial);
+      instance_data_when_partial = NULL;      
+    }
+
+    /* finalise */
+    ret = Final(&context, bs_transformed_output, hash_val);
+    free(bs_transformed_output); 
+  }
+
+  if (new_complete_data_buffer != NULL) { // only in certain cases we need to free this buffer
+    free(new_complete_data_buffer);
+    new_complete_data_buffer = NULL;
+  }
+
 
   return ret;
 }
