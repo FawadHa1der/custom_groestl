@@ -349,11 +349,98 @@ void copy_input_buffer_with_min_block_size(uchar* input_buffer, int32_t complete
   }
 }
 
+typedef struct groestl_block_info {
+
+  // uchar* input;
+  // word_t msglen;
+  // word_t total_data_length_bytes;
+  word_t original_msg_size_bytes;
+  word_t original_num_blocks; // how many blocks kdoes it take to store the initial message without the potential extra padded block.
+  word_t final_num_blocks; // make sure we write 64 bytes as the block counter. As per groestl docs 8 bytes is reserved for the block counter
+  word_t  final_msg_size_bytes;// after padding is added according to groestl 256
+  // word_t* transformed_output;
+}Groestl_block_info;
+
+// given a chunck size we need to calculate the number of groestl blocks that can be formed from the data
+Groestl_block_info calculate_blocks_for_chunk(word_t chunk_size_bytes, hashState* ctx) {
+  Groestl_block_info block_info;
+  block_info.original_msg_size_bytes = chunk_size_bytes;
+
+  word_t running_msg_len_bytes = chunk_size_bytes; // this will get modified depnding upon the padding.
+  uchar* byteInput = input;
+
+  block_info.final_num_blocks = running_msg_len_bytes / ctx->statesize;
+  block_info.original_num_blocks = block_info.final_num_blocks + 1;// this is the block index where custome groestl padding is added. 
+  // byteInput[running_msg_len_bytes] = 0x80; // very important to remember.
+  running_msg_len_bytes++; // for the 0x80 being added at the end of the original message. Important to append 0x80 to the message wherevr the modification is done
+
+  const int remainder = (running_msg_len_bytes)%ctx->statesize;
+  int remainder_index = remainder;
+  /* store remaining data in buffer */
+  if (remainder_index > ctx->statesize - LENGTHFIELDLEN) {
+    // extra buffer
+    running_msg_len_bytes += ctx->statesize - remainder_index;
+    // newMsgLen = newMsgLen + (ctx->statesize - remainder);
+    remainder_index = 0;
+    block_info.final_num_blocks++;
+    ctx->block_counter++;
+  }
+
+  running_msg_len_bytes += (ctx->statesize-LENGTHFIELDLEN) - remainder_index;
+
+  block_info.final_num_blocks++;
+  ctx->block_counter++;
+
+  // byteInput[newMsgLen + (remainder_index -1 )] = (u8)ctx->block_counter;
+  running_msg_len_bytes += LENGTHFIELDLEN;
+
+  // int lengthPad = LENGTHFIELDLEN;
+  // int lengthPadIndex = 1;
+
+  // const int completeBlockCounter =  ctx->block_counter; // ctx->block_counter gets modified below so storing in a  temp var here
+  // while (lengthPadIndex <= LENGTHFIELDLEN) {
+  //   byteInput[newMsgLen - lengthPadIndex] = (u8)ctx->block_counter;
+  //   lengthPadIndex++;
+  //   ctx->block_counter >>= 8;
+  // }
+
+  return block_info;
+}
+
+// given a chunck size we need to calculate the number of groestl blocks that can be formed from the data
+// block_info is already calculated and passed as an argument. Assuming it has correct calculated values
+void modify_last_blocks(uchar* last_block_bytes, word_t current_index , Groestl_block_info* block_info) {
+  // Groestl_block_info block_info;
+  // block_info.original_msg_size_bytes = chunk_size_bytes;
+
+  // word_t running_msg_len_bytes = chunk_size_bytes; // this will get modified depnding upon the padding.
+  // uchar* byteInput = input;
+  int remainder_index = block_info->original_msg_size_bytes % BLOCK_SIZE_BYTES;
+
+  if (current_index == block_info->original_num_blocks && current_index == block_info->final_num_blocks) {
+    // this means that the extra padded block was not added
+    last_block_bytes[remainder_index] = 0x80; // very important to remember. signifies end of the original message
+  }
+
+  // adding the block counter at the end of the block
+  int length_pad = LENGTHFIELDLEN;
+  int length_pad_index = 1;
+  int final_msg_size_remainder_index = block_info->final_msg_size_bytes % BLOCK_SIZE_BYTES;
+  word_t block_counter =  block_info->final_num_blocks; // ctx->block_counter gets modified below so storing in a  temp var here
+
+  while (length_pad_index <= LENGTHFIELDLEN) {
+    last_block_bytes[final_msg_size_remainder_index - length_pad_index] = (u8)block_counter;
+    length_pad_index++;
+    block_counter >>= 8;
+  }
+}
+
+
 /// for integration with binius rust input
 /* hash bit sequence */
 // 
 HashReturn Hash_binius_input(int hash_bit_len,
-                            const BitSequence* data,  // comlete data for all the parallel inputs, data coming from the caller, should never be freed by this program or modified
+                            const BitSequence* original_data,  // comlete data for all the parallel inputs, data coming from the caller, should never be freed by this program or modified
                             const word_t complete_data_length_bytes,
                             word_t chunk_length_bytes,
                             BitSequence* hash_val,
@@ -361,6 +448,9 @@ HashReturn Hash_binius_input(int hash_bit_len,
 
   HashReturn ret;
   hashState context;
+
+  // create a new buffer for every top level instance which will have the input with padding which the groestl 256 expects
+  // this new buffer will also block sliced (not bit sliced yet). That is the first blocks from all the chuncks will be placed together and then the second blocks from all the chunks and so on so forth
 
   if (complete_data_length_bytes % chunk_length_bytes != 0) {
     printf("ERROR: Data length is not a multiple of chunk length\n");
@@ -370,72 +460,102 @@ HashReturn Hash_binius_input(int hash_bit_len,
   // if chunk_length_bytes < BLOCK_SIZE then we need to create a new buffer so that we can have all the chunks of BLOCK_SIZE which are zeroed for missing data.
   // output_buffer should be pre allocated. and every data slice should be of size BLOCK_SIZE_BYTES
 
-  uchar* new_complete_data_buffer = NULL; // be very careful with this buffer. It should be freed after use. may be try to figureotu a cleaner way to do this
-  if (chunk_length_bytes < BLOCK_SIZE_BYTES) {
-    uchar* new_complete_data_buffer = malloc(complete_data_length_bytes);
-    copy_input_buffer_with_min_block_size(data, complete_data_length_bytes, chunk_length_bytes, new_complete_data_buffer);
-    data = new_complete_data_buffer;
-    chunk_length_bytes = BLOCK_SIZE_BYTES;
-  }
+  // uchar* new_complete_data_buffer = NULL; // be very careful with this buffer. It should be freed after use. may be try to figureotu a cleaner way to do this
+  // if (chunk_length_bytes < BLOCK_SIZE_BYTES) {
+  //   uchar* new_complete_data_buffer = malloc(complete_data_length_bytes);
+  //   copy_input_buffer_with_min_block_size(data, complete_data_length_bytes, chunk_length_bytes, new_complete_data_buffer);
+  //   data = new_complete_data_buffer;
+  //   chunk_length_bytes = BLOCK_SIZE_BYTES;
+  // }
  
   // might have to spawn multiple threads here.
   // for now just one thread
   word_t  total_chunks = complete_data_length_bytes / chunk_length_bytes; // total chunks correspond to total groestl 256 hashes but not bitsliced instances.
-  word_t  top_level_instances =  total_chunks / WORD_SIZE ;  // this corresponds to bitsliced instances. Each instance will compute WORDS_SIZE parallel groestl hashes
+  word_t  top_level_instances = total_chunks / WORD_SIZE ;  // this corresponds to bitsliced instances. Each instance will compute WORD_SIZE parallel groestl hashes
 
   const word_t remaining_data_length_bytes_bitsliced_window = (total_chunks % WORD_SIZE)? (total_chunks % WORD_SIZE) * chunk_length_bytes : 0; // TODO handle this case, may be just copy what we have to a new buffer and then call the function again
   const word_t partial_empty_top_level_instance = top_level_instances;//the partial one will be the last one
   if (remaining_data_length_bytes_bitsliced_window != 0) {
     // append an extra top level bitsliced instance to process
     top_level_instances++;
-    return FAIL;
   }
+
+  Groestl_block_info block_info = calculate_blocks_for_chunk(chunk_length_bytes, &context);
+  uchar* new_instance_buffer = NULL;
 
   for (int instance = 0 ; instance < top_level_instances; instance++){
-    /* initialise */
-    if ((ret = Init(&context, hash_bit_len)) != SUCCESS)
-      return ret;
+    new_instance_buffer = malloc(block_info.final_msg_size_bytes * WORD_SIZE);
+    memset(new_instance_buffer, 0, block_info.final_msg_size_bytes * WORD_SIZE);
+    for (int block_in_a_chunk_index = 0; block_in_a_chunk_index < block_info.final_num_blocks; block_in_a_chunk_index++) {
+      for (int chunk_index = 0; chunk_index < WORD_SIZE; chunk_index++) {
+          memcpy(new_instance_buffer + ((block_in_a_chunk_index + chunk_index) * BLOCK_SIZE_BYTES) , original_data + (block_in_a_chunk_index * BLOCK_SIZE_BYTES) + (chunk_index * chunk_length_bytes), BLOCK_SIZE_BYTES);
 
-    uchar* instance_data = data + (instance * WORD_SIZE * chunk_length_bytes);
-    word_t instance_data_length_bytes = WORD_SIZE * chunk_length_bytes;
+          if (block_in_a_chunk_index >= block_info.original_num_blocks) {
+            // the block index where the custom groestl padding is added which includes 0x80 at the end of the message and the block counter at the end and a potential extra block
+            modify_last_blocks(new_instance_buffer + ((block_in_a_chunk_index + chunk_index) * BLOCK_SIZE_BYTES), block_in_a_chunk_index, &block_info);
+          }
+      }
 
-    word_t *bs_transformed_output = malloc(context.statesize * WORD_SIZE);// [64* BLOCK_SIZE];
-    memset(bs_transformed_output, 0, context.statesize * WORD_SIZE);
+      /* initialise */
+      if ((ret = Init(&context, hash_bit_len)) != SUCCESS)
+        return ret;
 
-    u32* bs_transformed_output32 = bs_transformed_output; // temp cast
-    // set context.hashbitlen in all of the blocks
-    for (int block = 0; block < WORD_SIZE; block++) {
-      bs_transformed_output32[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
-      bs_transformed_output32 += context.statesize/sizeof(u32);
+      uchar* instance_data = data + (instance * WORD_SIZE * chunk_length_bytes);
+      word_t new_padded_data_length_bytes = WORD_SIZE * block_info.final_msg_size_bytes;
+
+      memcpy(new_instance_buffer, instance_data, chunk_length_bytes * WORD_SIZE);
+
+      if (remaining_data_length_bytes_bitsliced_window && (instance == partial_empty_top_level_instance)) {
+        // this is the last instance and it has less than WORD_SIZE chunks
+        // we need to copy the data to a new buffer and then call the function again
+        //memcpy(new_instance_buffer, instance_data, remaining_data_length_bytes_bitsliced_window);
+      }
+      else {
+        //memcpy(new_instance_buffer, instance_data, new_padded_data_length_bytes);
+        // beginning of block sliced copy into the new buffer
+        for (int block = 0; block < WORD_SIZE; block++) {
+          memcpy(new_instance_buffer + (block * chunk_length_bytes), instance_data + (block * WORD_SIZE), chunk_length_bytes);
+        }
+      }
+
+      word_t *bs_transformed_output = malloc(context.statesize * WORD_SIZE);// [64* BLOCK_SIZE];
+      memset(bs_transformed_output, 0, context.statesize * WORD_SIZE);
+
+      u32* bs_transformed_output32 = bs_transformed_output; // temp cast
+      // set context.hashbitlen in all of the blocks
+      for (int block = 0; block < WORD_SIZE; block++) {
+        bs_transformed_output32[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
+        bs_transformed_output32 += context.statesize/sizeof(u32);
+      }
+
+      uchar* instance_data_when_partial = malloc(new_padded_data_length_bytes);
+      memset(instance_data_when_partial, 0, new_padded_data_length_bytes);
+
+      if (remaining_data_length_bytes_bitsliced_window && (instance == partial_empty_top_level_instance)) {
+        // this is the last instance and it has less than WORD_SIZE chunks
+        // we need to copy the data to a new buffer and then call the function again
+        memcpy(instance_data_when_partial, instance_data, remaining_data_length_bytes_bitsliced_window);
+      }
+
+      /* process message */
+      if ((ret = update_binius_input(&context, instance_data, chunk_length_bytes, chunk_length_bytes * WORD_SIZE, bs_transformed_output)) != SUCCESS)
+        return ret;
+
+      if (instance_data_when_partial) {
+        free(instance_data_when_partial);
+        instance_data_when_partial = NULL;      
+      }
+
+      /* finalise */
+      ret = Final(&context, bs_transformed_output, hash_val);
+      free(bs_transformed_output); 
     }
-
-    uchar* instance_data_when_partial = malloc(instance_data_length_bytes);
-    memset(instance_data_when_partial, 0, instance_data_length_bytes);
-
-    if (remaining_data_length_bytes_bitsliced_window && (instance == partial_empty_top_level_instance)) {
-      // this is the last instance and it has less than WORD_SIZE chunks
-      // we need to copy the data to a new buffer and then call the function again
-      memcpy(instance_data_when_partial, instance_data, remaining_data_length_bytes_bitsliced_window);
-    }
-
-    /* process message */
-    if ((ret = update_binius_input(&context, instance_data, chunk_length_bytes, chunk_length_bytes * WORD_SIZE, bs_transformed_output)) != SUCCESS)
-      return ret;
-
-    if (instance_data_when_partial) {
-      free(instance_data_when_partial);
-      instance_data_when_partial = NULL;      
-    }
-
-    /* finalise */
-    ret = Final(&context, bs_transformed_output, hash_val);
-    free(bs_transformed_output); 
   }
 
-  if (new_complete_data_buffer != NULL) { // only in certain cases we need to free this buffer
-    free(new_complete_data_buffer);
-    new_complete_data_buffer = NULL;
-  }
+  // if (new_complete_data_buffer != NULL) { // only in certain cases we need to free this buffer
+  //   free(new_complete_data_buffer);
+  //   new_complete_data_buffer = NULL;
+  // }
 
 
   return ret;
