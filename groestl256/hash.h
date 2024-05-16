@@ -88,11 +88,11 @@ void PrintHash(const BitSequence*, int);
 void printHexArray(unsigned char *array, uint size);
 
 
+int groestl_bs_hash(unsigned char *result_hashes, const unsigned char *in, word_t total_length_bytes, word_t chunk_length_bytes );
 
 
 /////////////////RUST INTEGRATION/////////////////////
 
-int groestl_bs_hash(unsigned char *result_hashes, const unsigned char *in, word_t total_length_bytes, word_t chunk_length_bytes );
 typedef struct {
     uint64_t low;
     uint64_t high;
@@ -106,7 +106,8 @@ typedef struct {
     PackedPrimitiveType elements[2]; // For N=2
 } ScaledPackedField;
 
-void process_packed_array(PackedPrimitiveType *array, size_t total_length, size_t chunk_size) ;
+//void process_packed_array(PackedPrimitiveType *array, size_t total_length, size_t chunk_size) ;
+void binius_groestl_bs_hash(ScaledPackedField *result, PackedPrimitiveType *array, size_t total_length, size_t chunk_size) ;
 void populate_scaled_packed_fields(ScaledPackedField *array, size_t length);
 ///////////////////END OF RUST INTEGRATION/////////////////////
 
