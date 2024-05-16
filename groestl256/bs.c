@@ -17,19 +17,8 @@
     #include <stdio.h>
 #include "hash.h"
 #include <inttypes.h> // for PRId64 macro
-#include "tablesSubBytes.h"
 void sbox_bitsliced(word_t *in);
 //unbitsliced subbytes
-void subBytes(uint8_t* x)
-{
-	int i;
-	for(i=0;i<64;i++)
-	{
-		x[i] = S[x[i]];
-	}
-}
-
-
 void printArray(word_t* array) {
   int i;
   for (i = 0; i < 8; i++) {
@@ -2063,7 +2052,7 @@ void bs_generate_roundc_matrix_p_minimal ( word_t * p_round_constant, word_t rou
     // one isthe simpler way to just transpose the round constant matrix and the other is to do it manually in a complicated way in an effort to optimize it.
     // bs_generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
     for (int byte_index = 0; byte_index < 8; byte_index++) { // byte index into the P_ROUND_INITIAL_CONSTANT
-        u8 byte_constant =  (P_ROUND_CONSTANT >> (8 * byte_index)) & 0xFF;// we take a byte out of the 64 bit constant. 
+        uchar byte_constant =  (P_ROUND_CONSTANT >> (8 * byte_index)) & 0xFF;// we take a byte out of the 64 bit constant. 
         byte_constant = byte_constant ^ round;
         // now we convert the bits in the byte constant to indices in the bit sliced array
         for (bit_index = 0; bit_index < 8; bit_index++){
@@ -2089,7 +2078,7 @@ void bs_generate_roundc_matrix_q_minimal ( word_t * q_round_constant, word_t rou
     Q_ROUND_CONSTANT = Q_ROUND_INITIAL_CONSTANT;
 
     for (int byte_index = 0; byte_index < 8; byte_index++) { // byte index into the ROUND_INITIAL_CONSTANT
-        u8 byte_constant =  (Q_ROUND_CONSTANT >> (8 * byte_index)) & 0xFF;// we take a byte out of the 64 bit constant. 
+        uchar byte_constant =  (Q_ROUND_CONSTANT >> (8 * byte_index)) & 0xFF;// we take a byte out of the 64 bit constant. 
         byte_constant = byte_constant ^ round;
         // now we convert the bits in the byte constant to indices in the bit sliced array
         for (bit_index = 0; bit_index < 8; bit_index++){

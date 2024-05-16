@@ -34,7 +34,9 @@
     "*.inc": "c",
     "tablessubbytes.h": "c",
     "__locale": "c",
-    "ios": "c"
+    "ios": "c",
+    "compare": "c",
+    "cstdint": "c"
   },
   "C_Cpp_Runner.cCompilerPath": "clang",
   "C_Cpp_Runner.cppCompilerPath": "clang++",

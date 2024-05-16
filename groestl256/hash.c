@@ -15,7 +15,6 @@
 #include <stdlib.h>
 //#include <mmintrin.h>
 #include "hash.h"
-#include "tables.h"
 #include <string.h>
 #include <pthread.h>
 #include <stdint.h>
@@ -34,9 +33,9 @@ void printHexArray(unsigned char *array, uint size);
 
 /* digest part of a message in short variants */
 // total msglen in bytes
-int bs_transform_512(word_t *bs_state, const u8 *msg, int msglen) {
+int bs_transform_512(word_t *bs_state, const uchar *msg, int msglen) {
 
-   u64 *msg_64;
+   uint64_t *msg_64;
    int offset = 0;
 
     word_t input_space[BLOCK_SIZE]; // gets bitsliced soon after copy
@@ -254,26 +253,6 @@ void copy_result_hashes(uchar* transformed_hashed_output, uchar* result_hashes) 
   }
 }
 
-/* finalise: process remaining data (including padding), perform
-   output transformation, and write hash result to 'output' */
-HashReturn Final(hashState* ctx, u32* input,
-		 BitSequence* output) {
-  int i, j = 0, hashbytelen = ctx->hashbitlen/8;
-  u8 *s = input;
-
-  /* store hash result in output */
-  for (i = ctx->statesize-hashbytelen; i < ctx->statesize; i++,j++) {
-    output[j] = s[i];
-  }
-
-  /* zeroise relevant variables and deallocate memory */
-  for (i = 0; i < ctx->columns; i++) {
-    input[i] = 0;
-  }
-  // free(ctx->chaining);
-  // free(ctx->buffer);
-  return SUCCESS;
-}
 
 
 // if the chunk_size is less than block_size then we need to create a new buffer so that we can all the chunks of BLOCK_SIZE which are zeroed for missing data.
@@ -331,7 +310,6 @@ Groestl_block_info calculate_blocks_for_chunk(word_t chunk_size_bytes, hashState
 
   running_msg_len_bytes += (ctx->statesize-LENGTHFIELDLEN) - remainder_index;
 
-  // byteInput[newMsgLen + (remainder_index -1 )] = (u8)ctx->block_counter;
   running_msg_len_bytes += LENGTHFIELDLEN;
   block_info.final_msg_size_bytes = running_msg_len_bytes;
 
@@ -380,7 +358,7 @@ void modify_last_blocks(uchar* last_block_bytes, word_t current_index , Groestl_
     word_t block_counter =  block_info.final_num_blocks; // block_info.final_num_blocks gets modified below so storing in a  temp var here
 
     while (length_pad_index <= LENGTHFIELDLEN) {
-      last_block_bytes[BLOCK_SIZE_BYTES - length_pad_index] = (u8)block_counter;
+      last_block_bytes[BLOCK_SIZE_BYTES - length_pad_index] = (uchar)block_counter;
       length_pad_index++;
       block_counter >>= 8;
     }
@@ -458,11 +436,11 @@ HashReturn hash_binius_input(int hash_bit_len,
     word_t *bs_transformed_output = malloc(bs_output_size);// [64* BLOCK_SIZE];
     memset(bs_transformed_output, 0, bs_output_size);
 
-    u32* bs_transformed_output32 = bs_transformed_output; // temp cast, TODO CLEAN THIS UP
+    uint32_t* bs_transformed_output32 = bs_transformed_output; // temp cast, TODO CLEAN THIS UP
     // set context.hashbitlen in all of the blocks
     for (int block = 0; block < WORD_SIZE; block++) {
-      bs_transformed_output32[2*context.columns-1] = U32BIG((u32)context.hashbitlen);
-      bs_transformed_output32 += context.statesize/sizeof(u32);
+      bs_transformed_output32[2*context.columns-1] = U32BIG((uint32_t)context.hashbitlen);
+      bs_transformed_output32 += context.statesize/sizeof(uint32_t);
     }
 
     bs_transform_512(bs_transformed_output, new_instance_buffer, block_info.final_msg_size_bytes * WORD_SIZE);

@@ -45,8 +45,12 @@ int main(int argc, char **argv) {
     clock_t start, end;
     double cpu_time_used;
 
+    // for testing an edge case to added an extra padded block when the size is 120 bytes
+    const char* message = "my message gdfjhghjkfdhgjklfdshgjklfdhgjkfdshkfjsdhgjfdlshgjkfdsghfjdklhgjfkdlghfjdkslhgfdjksgsdfhj    dsdscxcd3232322cc";
 
-    const uchar* message = "my message";
+    // for one block
+    // const uchar* message = "my message";
+
     size_t single_item_size_bytes = strlen(message);
 
     printf("single_item_size_bytes: %zu\n", single_item_size_bytes);
