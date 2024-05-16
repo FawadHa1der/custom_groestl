@@ -8,57 +8,61 @@
 #include <stdlib.h>
 #include "hash.h"
 
+
+unsigned char* concatenate_copies(unsigned char* input, size_t length, int num_copies) {
+  size_t total_length = length * num_copies;
+  unsigned char* buffer = (unsigned char*)malloc(total_length);
+  if (buffer == NULL) {
+    printf("Error allocating memory.\n");
+    return NULL;
+  }
+  for (int i = 0; i < num_copies; i++) {
+    memcpy(buffer + (i * length), input, length);
+  }
+  return buffer;
+}
+
+
+void print_result_hashes(char* result_hashes, unsigned int copies_n_hashes, unsigned int hash_size_bytes) {
+ // for (int i = 0; i < 40; i++) {
+  for (int i = 0; i < copies_n_hashes; i++) {
+    printf("Hash %d (Hex): ", i);
+    for (int j = 0; j < hash_size_bytes; j++) {
+      printf("%02x", (unsigned char)result_hashes[i * hash_size_bytes + j]);
+    }
+    printf("\n");
+    printf("Hash %d (Decimal): ", i);
+    for (int j = 0; j < hash_size_bytes; j++) {
+      printf("%d ", (unsigned char)result_hashes[i * hash_size_bytes + j]);
+    }
+    printf("\n");
+  }
+}
+
+
 int main(int argc, char **argv) {
-    uint *ct, *pt;
-    ct = (uint*)malloc(8 * sizeof(uint)); // Allocating memory for 8 uints
-
-    int dataSize; // Total data size
-    size_t maxSharedMemory;
-    FILE *file = fopen("text_generator/pt_1MB.txt", "r");
-
-    if (file == NULL) {
-      printf("Error opening the file.\n");
-      return -1;
-    }
-
-    fseek(file, 0, SEEK_END);
-    dataSize = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    // Host array
-    unsigned char *hostData = (unsigned char*)malloc(dataSize + (SIZE512 * 2));
-    if (hostData == NULL) {
-      printf("Error allocating memory.\n");
-      fclose(file);
-      return -1;
-    }
-
-    fread(hostData, sizeof(unsigned char), dataSize, file);
-    fclose(file);
-
 
     clock_t start, end;
     double cpu_time_used;
 
+
+    const uchar* message = "my message";
+    size_t single_item_size_bytes = strlen(message);
+
+    printf("single_item_size_bytes: %zu\n", single_item_size_bytes);
+
+    unsigned int copies_n_hashes = 8192;
+    unsigned int hash_size_bytes = BLOCK_SIZE_BYTES/2;
+    word_t complete_data_list_length_bytes = single_item_size_bytes * copies_n_hashes;
+    word_t result_hashes_length_bytes = hash_size_bytes * copies_n_hashes;
+    uchar* data_list = concatenate_copies(message, single_item_size_bytes, copies_n_hashes);
+    uchar* result_hashes = (char*)malloc(hash_size_bytes * copies_n_hashes);
+    memset(result_hashes, 0, hash_size_bytes * copies_n_hashes);
     start = clock();
-
-    const char* message = "my message gdfjhghjkfdhgjklfdshgjklfdhgjkfdshkfjsdhgjfdlshgjkfdsghfjdklhgjfkdlghfjdkslhgfdjksgsdfhj    dsdscxcd3232322cc";
-    size_t size = strlen(message);
-
-    unsigned char* data = (unsigned char*)malloc(size + (SIZE512 * 2));
-    memset(data, 0, size + (SIZE512 * 2));
-    memcpy(data, message, size);
-    crypto_hash(ct, data, size);
-
-    // printf("Data: %s\n", hostData);
-    // printf("Size: %zu\n", dataSize);
-    // crypto_hash(ct, hostData, dataSize);
-    printf("\nHash:\n ");
-    printHexArray(ct, 32);
-    printf("done done\n");
-
+    groestl_bs_hash(result_hashes, data_list, complete_data_list_length_bytes, single_item_size_bytes);
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    print_result_hashes(result_hashes, copies_n_hashes, hash_size_bytes);
 
     printf("Time spent: %f seconds\n", cpu_time_used);
 

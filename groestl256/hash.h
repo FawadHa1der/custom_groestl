@@ -58,18 +58,12 @@ typedef crypto_uint64 u64;
 #endif /* IS_LITTLE_ENDIAN */
 
 
-/* NIST API begin */
+
 typedef unsigned char BitSequence;
 typedef unsigned long long DataLength;
 typedef enum { SUCCESS = 0, FAIL = 1, BAD_HASHLEN = 2 } HashReturn;
 typedef struct {
-  // u32 *chaining;            /* actual state */
-  u64 block_counter;        /* message block counter */
   int hashbitlen;           /* output length in bits */
-  // BitSequence *buffer;      /* data buffer */ // NOT BEING USED
-  // int buf_ptr;              /* data buffer pointer */ // NOT BEING USED
-  // int bits_in_last_byte;    /* no. of message bits in last byte of
-	// 		       data buffer */
   int columns;              /* no. of columns in state */
   int statesize;            /* total no. of bytes in state */
 } hashState;
@@ -85,13 +79,13 @@ void printAllResultsHashes(word_t* array, int block_counter);
 /* helper functions */
 void PrintHash(const BitSequence*, int);
 void printHexArray(unsigned char *array, uint size);
-int crypto_hash(unsigned char *out, const unsigned char *in, unsigned long long inlen);
-
 
 
 
 
 /////////////////RUST INTEGRATION/////////////////////
+
+int groestl_bs_hash(unsigned char *result_hashes, const unsigned char *in, word_t total_length_bytes, word_t chunk_length_bytes );
 typedef struct {
     uint64_t low;
     uint64_t high;

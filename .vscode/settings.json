@@ -32,7 +32,9 @@
     "stack": "c",
     "format": "c",
     "*.inc": "c",
-    "tablessubbytes.h": "c"
+    "tablessubbytes.h": "c",
+    "__locale": "c",
+    "ios": "c"
   },
   "C_Cpp_Runner.cCompilerPath": "clang",
   "C_Cpp_Runner.cppCompilerPath": "clang++",
