@@ -1,8 +1,3 @@
-This repo contains a parallelized groestl hash implementation for NVidia GPU
 
-The Q transformation can be parallelized(since it is not chained) so first we transform the whole input message using the Q transformation only and then we use 8 parallel threads to apply the P transformation. The input can of any size N.
 
-GPU Version: hash.cu  (Cuda-fied) 
-Desktop version : hash.c (used for reference)
-
-This builds on top of implementation from -> from https://www.groestl.info
+This repo is a bitsliced implementation of groestl. 
