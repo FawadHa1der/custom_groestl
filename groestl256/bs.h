@@ -49,27 +49,18 @@ void bs_transpose_rev(word_t * blocks, word_t width_to_adjacent_block);
 void bs_transpose_dst(word_t * transpose, word_t * blocks, word_t width_to_adjacent_block);
 
 void bs_sbox(word_t U[8]);
-void bs_sbox_rev(word_t U[8]);
 
 void bs_shiftrows_p(word_t * B);
 void bs_shiftrows_rev(word_t * B);
 
 void bs_mixbytes(word_t * B);
-void bs_mixcolumns_rev(word_t * B);
 
-void bs_shiftmix(word_t * B);
-
-void bs_addroundkey(word_t * B, word_t rk);
 void bs_apply_sbox(word_t * input);
-void bs_apply_sbox_rev(word_t * input);
 
 
-void expand_key(unsigned char *in);
-void bs_expand_key(word_t (* rk)[BLOCK_SIZE], uint8_t * key);
 
 void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE]);
 
-void bs_cipher_rev(word_t state[BLOCK_SIZE], word_t (* rk)[BLOCK_SIZE]);
 void bs_generate_roundc_matrix_p_minimal ( word_t * bs_p_round_constant, word_t round);
 void bs_generate_roundc_matrix_p ( word_t * bs_p_round_constant, word_t round);
 void printArray(word_t* array);
