@@ -1,3 +1,4 @@
+//Copyright 2024 Fawad Haider
 #ifndef __hash_h
 #define __hash_h
 

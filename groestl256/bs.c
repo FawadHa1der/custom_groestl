@@ -1,4 +1,6 @@
 
+
+//Copyright 2024 Fawad Haider
 #include <string.h>
 #include "bs.h"
 

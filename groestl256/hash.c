@@ -1,3 +1,5 @@
+//Copyright 2024 Fawad Haider
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "hash.h"
