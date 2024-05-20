@@ -369,16 +369,16 @@ void printHexArray(unsigned char *array, uint size) {
 
 // void process_packed_array(PackedPrimitiveType *array, size_t total_length, size_t chunk_size)  {
 void binius_groestl_bs_hash(ScaledPackedField *result, PackedPrimitiveType *array, size_t total_length, size_t chunk_size) {
-  printf("incoming size id: %d", total_length);        
-  for (size_t i = 0; i < total_length; i++) {
-      // Example processing
-      // Accessing high and low parts of a 128-bit integer
-      uint64_t high_part = array[i].value.high;
-      uint64_t low_part = array[i].value.low;
-      if (i < 10){
-        printf("High: %" PRIu64 ", Low: %" PRIu64 "\n", high_part, low_part);        
-      }
-  }
+  // printf("incoming size id: %d", total_length);        
+  // for (size_t i = 0; i < total_length; i++) {
+  //     // Example processing
+  //     // Accessing high and low parts of a 128-bit integer
+  //     uint64_t high_part = array[i].value.high;
+  //     uint64_t low_part = array[i].value.low;
+  //     if (i < 10){
+  //       printf("High: %" PRIu64 ", Low: %" PRIu64 "\n", high_part, low_part);        
+  //     }
+  // }
   groestl_bs_hash(result, array, total_length, chunk_size);
 }
 
