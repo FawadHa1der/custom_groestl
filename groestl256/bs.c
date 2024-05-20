@@ -773,8 +773,8 @@ void bs_transpose_rev(word_t * blocks, word_t width_to_adjacent_block)
 #endif
 #endif
     }
-//    memmove(blocks,transpose,sizeof(transpose));
-    memcpy(blocks,transpose,sizeof(transpose));
+    memmove(blocks,transpose,sizeof(transpose));
+// /    memcpy(blocks,transpose,sizeof(transpose));
 }
 
 
@@ -1320,20 +1320,22 @@ void bs_gf_multiply(word_t * B, word_t * A, int C)
 
     // lets create a local copy of B
     word_t B_space[8];
-    B_space[0] = B[0];
-    B_space[1] = B[1];
-    B_space[2] = B[2];
-    B_space[3] = B[3];
-    B_space[4] = B[4];
-    B_space[5] = B[5];
-    B_space[6] = B[6];
-    B_space[7] = B[7];
+    memcpy(B_space, B, sizeof(B_space));
+    memset(A, 0, sizeof(B_space));
+    // B_space[0] = B[0];
+    // B_space[1] = B[1];
+    // B_space[2] = B[2];
+    // B_space[3] = B[3];
+    // B_space[4] = B[4];
+    // B_space[5] = B[5];
+    // B_space[6] = B[6];
+    // B_space[7] = B[7];
 
     int i;
-    for(i=0; i<8; i++)
-    {
-        A[i] = 0;
-    }
+    // for(i=0; i<8; i++)
+    // {
+    //     A[i] = 0;
+    // }
     int b_index = 0;
     int j = 0;
     for(i=0; i<8; i++)
@@ -1397,8 +1399,7 @@ void bs_mixbytes(word_t * B)
     word_t * Bp = Bp_space;
     word_t tmpProducts[8];
 
-    word_t oldTmpProducts[8];
-    // to understand this, see
+    // to understand this, see. That will give an idea of how to implement this. especialy sarrless multiplication in a nonbitsliced way.
     // https://en.wikipedia.org/wiki/Rijndael_mix_columns
     
     int i = 0;
@@ -2071,7 +2072,46 @@ void bs_generate_roundc_matrix_q_minimal ( word_t * q_round_constant, word_t rou
     // word_t round = 0; // goes from 0 - 9
 }
 
+void bs_generate_roundc_matrix_p(word_t * p_round_constant, word_t round ){
+    word_t bs_p_round_constant[BLOCK_SIZE];
 
+    word_t round_constant = round;
+
+
+        for (word_t i = 0; i < BLOCK_SIZE; i+= WORDS_PER_BLOCK)
+        {
+
+            p_round_constant[i + 0] = 0x0000000000000000ull ^ round_constant ;
+            p_round_constant[i + 1] = 0x0000000000000010ull ^ round_constant ;
+            p_round_constant[i + 2] = 0x0000000000000020ull ^ round_constant ;
+            p_round_constant[i + 3] = 0x0000000000000030ull ^ round_constant ;
+            p_round_constant[i + 4] = 0x0000000000000040ull^ round_constant ;
+            p_round_constant[i + 5] = 0x0000000000000050ull ^ round_constant ;
+            p_round_constant[i + 6] = 0x0000000000000060ull^ round_constant ;
+            p_round_constant[i + 7] = 0x0000000000000070ull^ round_constant ;
+        }
+        bs_transpose(p_round_constant,1);
+
+}
+
+void bs_generate_roundc_matrix_q(word_t * q_round_constant, word_t round){
+    word_t bs_q_round_constant[BLOCK_SIZE];
+
+    word_t round_constant = round;
+
+        for (word_t i = 0; i < BLOCK_SIZE; i+= WORDS_PER_BLOCK)
+        {
+            q_round_constant[i + 0] = 0xffffffffffffffffull^ U64BIG(round_constant) ;
+            q_round_constant[i + 1] = 0xefffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 2] = 0xdfffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 3] = 0xcfffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 4] = 0xbfffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 5] = 0xafffffffffffffffull^ U64BIG(round_constant) ;
+            q_round_constant[i + 6] = 0x9fffffffffffffffull^ U64BIG(round_constant);
+            q_round_constant[i + 7] = 0x8fffffffffffffffull^ U64BIG(round_constant);
+        }
+        bs_transpose(q_round_constant,1);
+}
 
 void bs_generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_constant, word_t round){
 
@@ -2259,8 +2299,6 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
     word_t bs_p_round_constant[BLOCK_SIZE];
     word_t bs_q_round_constant[BLOCK_SIZE];
 
-
-
     // word_t p_round_constant[BLOCK_SIZE];
     // word_t q_round_constant[BLOCK_SIZE];
     // memset(p_round_constant, 0, sizeof(p_round_constant));
@@ -2283,8 +2321,8 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
     // printf("\ninput Q before xor with round constant\n");
     // printArray(bs_m64_m);
 
-    word_t bs_tmp_copy[BLOCK_SIZE];
-    memset(bs_tmp_copy, 0, sizeof(bs_tmp_copy));
+    // word_t bs_tmp_copy[BLOCK_SIZE];
+    // memset(bs_tmp_copy, 0, sizeof(bs_tmp_copy));
 
     // printf("\ninput \n");
     // printArray(input);
@@ -2307,7 +2345,7 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
 
         // for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
         //     if (bs_q_round_constant[word_index] != bs_q_round_constant_minimal[word_index]){
-        //         printf("bs_q_round_constant[word_index] != bs_q_round_constant_minimal[word_index]\n");
+        //         printf("bs_q_round_constant[wowrd_index] != bs_q_round_constant_minimal[word_index]\n");
         //         print_word_in_hex_and_binary(bs_q_round_constant[word_index]);
         //     }
         // }

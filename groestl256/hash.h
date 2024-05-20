@@ -59,6 +59,7 @@ typedef unsigned int    uint;   /* assuming sizeof(uint) == 4 */
 #endif /* IS_LITTLE_ENDIAN */
 
 /* some sizes (number of bytes) */
+#define HASHBITLEN 256
 #define ROWS 8
 #define LENGTHFIELDLEN ROWS
 #define COLS512 8
@@ -76,11 +77,6 @@ typedef unsigned int    uint;   /* assuming sizeof(uint) == 4 */
 typedef unsigned char BitSequence;
 typedef unsigned long long DataLength;
 typedef enum { SUCCESS = 0, FAIL = 1, BAD_HASHLEN = 2 } HashReturn;
-typedef struct {
-  int hashbitlen;           /* output length in bits */
-  int columns;              /* no. of columns in state */
-  int statesize;            /* total no. of bytes in state */
-} hashState;
 
 void printAllResultsHashes(word_t* array, int block_counter);
 /* helper functions */
