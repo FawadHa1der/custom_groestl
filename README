@@ -2,7 +2,7 @@
 
 This repo is a bitsliced implementation of groestl. This repo is constant WIP for optimizations but the basic structure  is functional.
 
-The input should be a large array which can be divided into N chunks. N chunks are then hashed parallel (64 hashes at a time).
+The input should be a large array which can be divided into N chunks. N chunks are then hashed parallel (64 hashes at a time, contingent register/word length).
 
 Code has been borrowed from https://github.com/conorpp/bitsliced-aes particularly the SBOX impl. Many thanks to the author @conorpp.
 Significant portions of it is new/custom per groestl specification.
