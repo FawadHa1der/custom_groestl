@@ -2,5 +2,6 @@
 
 This repo is a bitsliced implementation of groestl. 
 
-Some code has been borrowed from https://github.com/conorpp/bitsliced-aes particularly the SBOX impl but lot of it is new per groestl specification.
+Code has been borrowed from https://github.com/conorpp/bitsliced-aes particularly the SBOX impl. Many thanks to the author @conorpp.
+Significant portions of it is new/custom per groestl specification.
 Copyright 2024 Fawad Haider
