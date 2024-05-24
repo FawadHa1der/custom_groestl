@@ -9,14 +9,10 @@
 #include <inttypes.h>
 #include <time.h>
 
-void bs_OutputTransformation512(word_t *outputTransformation);
+void bs_output_transformation_512(word_t *outputTransformation);
 void printHexArray(unsigned char *array, uint size);
 
 
-// /* apply the output transformation after identifying variant */
-// void OutputTransformation(u32 *output) {
-//     OutputTransformation512(output);
-// }
 
 
 /* digest part of a message in short variants */
@@ -27,14 +23,8 @@ int bs_transform_512(word_t *bs_state, const uchar *msg, int msglen) {
    int offset = 0;
 
     word_t input_space[BLOCK_SIZE]; // gets bitsliced soon after copy
-    // word_t bs_input_space[BLOCK_SIZE];
-    // word_t bs_state[BLOCK_SIZE];
     int size_left = msglen;
 
-    // memset(outputb,0,size);
-    // word_t * state = (word_t *)outputb;
-
-    // bs_expand_key(rk, key);
     bs_transpose(bs_state, 1);
 
     while (size_left > 0)
@@ -60,14 +50,14 @@ int bs_transform_512(word_t *bs_state, const uchar *msg, int msglen) {
         }
     }
 
-  bs_OutputTransformation512(bs_state);
+  bs_output_transformation_512(bs_state);
   bs_transpose_rev(bs_state,1);
   // return 0;
 }
 
 
 /* apply the output transformation of short variants */
-void bs_OutputTransformation512(word_t *state) {
+void bs_output_transformation_512(word_t *state) {
 
     word_t bs_p_round_constant[BLOCK_SIZE];
     // word_t bs_m64_m[BLOCK_SIZE];
@@ -109,23 +99,6 @@ void copy_result_hashes(uchar* transformed_hashed_output, uchar* result_hashes) 
 }
 
 
-
-// // if the chunk_size is less than block_size then we need to create a new buffer so that we can all the chunks of BLOCK_SIZE which are zeroed for missing data.
-// // output_buffer should be pre allocated. and every data slice should be of size BLOCK_SIZE
-// void copy_input_buffer_with_min_block_size(uchar* input_buffer, int32_t complete_data_length_bytes, int32_t chunk_length_bytes, uchar* output_buffer){
-//   int32_t total_chunks = complete_data_length_bytes / chunk_length_bytes;
-//   const int32_t block_size_bytes = BLOCK_SIZE/8;
-
-//   if (chunk_length_bytes < BLOCK_SIZE) {
-//     // uchar* new_buffer = malloc(total_data_length_in_bytes);
-//     memset(output_buffer, 0, complete_data_length_bytes);
-
-//     for (int i = 0; i < total_chunks; i++) {
-//       memcpy(output_buffer + (i * block_size_bytes), input_buffer + (i * chunk_length_bytes), chunk_length_bytes);
-//     }
-//   }
-// }
-
 typedef struct groestl_block_info {
 
   // uchar* input;
@@ -158,7 +131,6 @@ Groestl_block_info calculate_blocks_for_chunk(word_t chunk_size_bytes) {
   if (remainder_index > BLOCK_SIZE_BYTES - LENGTHFIELDLEN) {
     // extra buffer
     running_msg_len_bytes += BLOCK_SIZE_BYTES - remainder_index;
-    // newMsgLen = newMsgLen + (BLOCK_SIZE_BYTES - remainder);
     remainder_index = 0;
     block_info.final_num_blocks++;
   }
@@ -167,16 +139,6 @@ Groestl_block_info calculate_blocks_for_chunk(word_t chunk_size_bytes) {
 
   running_msg_len_bytes += LENGTHFIELDLEN;
   block_info.final_msg_size_bytes = running_msg_len_bytes;
-
-  // int lengthPad = LENGTHFIELDLEN;
-  // int lengthPadIndex = 1;
-
-  // const int completeBlockCounter =  ctx->block_counter; // ctx->block_counter gets modified below so storing in a  temp var here
-  // while (lengthPadIndex <= LENGTHFIELDLEN) {
-  //   byteInput[newMsgLen - lengthPadIndex] = (u8)ctx->block_counter;
-  //   lengthPadIndex++;
-  //   ctx->block_counter >>= 8;
-  // }
 
   if (block_info.final_num_blocks > (block_info.original_num_blocks + 1)) {
     // this means that the extra padded block was not added

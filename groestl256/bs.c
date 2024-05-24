@@ -1353,16 +1353,6 @@ void generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_constan
 
         for (word_t i = 0; i < BLOCK_SIZE; i+= WORDS_PER_BLOCK)
         {
-            // assuming 8 for now
-       
-            // p_round_constant[i + 0] = 0x0000000000000000ull ^ U64BIG(round_constant) ;
-            // p_round_constant[i + 1] = 0x1000000000000000ull ^ U64BIG(round_constant) ;
-            // p_round_constant[i + 2] = 0x2000000000000000ull ^ U64BIG(round_constant) ;
-            // p_round_constant[i + 3] = 0x3000000000000000ull ^ U64BIG(round_constant) ;
-            // p_round_constant[i + 4] = 0x4000000000000000ull^ U64BIG(round_constant) ;
-            // p_round_constant[i + 5] = 0x5000000000000000ull ^ U64BIG(round_constant) ;
-            // p_round_constant[i + 6] = 0x6000000000000000ull^ U64BIG(round_constant) ;
-            // p_round_constant[i + 7] = 0x7000000000000000ull^ U64BIG(round_constant) ;
 
             p_round_constant[i + 0] = 0x0000000000000000ull ^ round_constant ;
             p_round_constant[i + 1] = 0x0000000000000010ull ^ round_constant ;
@@ -1511,154 +1501,11 @@ void bs_generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_cons
             q_round_constant[i + 6] = 0x9fffffffffffffffull^ U64BIG(round_constant);
             q_round_constant[i + 7] = 0x8fffffffffffffffull^ U64BIG(round_constant);
 
-            // // assuming 8 for now
-            // p_round_constant[i + 0] = P_CONSTANT_FIRST_ROW ^ round_constant;
-            // p_round_constant[i + 1] = 0x0000000000000000ULL;
-            // p_round_constant[i + 2] = 0x0000000000000000ULL;
-            // p_round_constant[i + 3] = 0x0000000000000000ULL;
-            // p_round_constant[i + 4] = 0x0000000000000000ULL;
-            // p_round_constant[i + 5] = 0x0000000000000000ULL;
-            // p_round_constant[i + 6] = 0x0000000000000000ULL;
-            // p_round_constant[i + 7] = 0x0000000000000000ULL;
-
-            // //for the alternative method 
-            // bs_p_round_constant[i + 0] = 0x0000000000000000ULL;
-            // bs_p_round_constant[i + 1] = 0x0000000000000000ULL;
-            // bs_p_round_constant[i + 2] = 0x0000000000000000ULL;
-            // bs_p_round_constant[i + 3] = 0x0000000000000000ULL;
-            // bs_p_round_constant[i + 4] = 0x0000000000000000ULL;
-            // bs_p_round_constant[i + 5] = 0x0000000000000000ULL;
-            // bs_p_round_constant[i + 6] = 0x0000000000000000ULL;
-            // bs_p_round_constant[i + 7] = 0x0000000000000000ULL;
-
-
-            // q_round_constant[i + 0] = 0xffffffffffffffffULL;
-            // q_round_constant[i + 1] = 0xffffffffffffffffULL;
-            // q_round_constant[i + 2] = 0xffffffffffffffffULL;
-            // q_round_constant[i + 3] = 0xffffffffffffffffULL;
-            // q_round_constant[i + 4] = 0xffffffffffffffffULL;
-            // q_round_constant[i + 5] = 0xffffffffffffffffULL;
-            // q_round_constant[i + 6] = 0xffffffffffffffffULL;
-            // q_round_constant[i + 7] = round_constant ^ Q_CONSTANT_LAST_ROW;
-
-            // //for the alternative method 
-            // bs_q_round_constant[i + 0] = 0xffffffffffffffffULL;
-            // bs_q_round_constant[i + 1] = 0xffffffffffffffffULL;
-            // bs_q_round_constant[i + 2] = 0xffffffffffffffffULL;
-            // bs_q_round_constant[i + 3] = 0xffffffffffffffffULL;
-            // bs_q_round_constant[i + 4] = 0xffffffffffffffffULL;
-            // bs_q_round_constant[i + 5] = 0xffffffffffffffffULL;
-            // bs_q_round_constant[i + 6] = 0xffffffffffffffffULL;
-            // bs_q_round_constant[i + 7] = 0xffffffffffffffffULL;
 
         }
         
         bs_transpose(p_round_constant,1);
         bs_transpose(q_round_constant,1);
-        return; // TODO remove this and check the code below
-
-
-        // print the transposed round constant matrix
-        printf ("P Round constant matrix for round %d\n", round);
-        // printArray(p_round_constant);
-        for (word_t i = 0; i < BLOCK_SIZE; i++) {
-            if (p_round_constant[i] != 0) {
-                printf("Line number: %d in p_round_constant \n", i);
-                print_word_in_hex_and_binary(p_round_constant[i]);
-            }
-
-            // if (p_round_constant[i] != bs_p_round_constant_and_round) {
-            // }
-            // word_t bitpos = 1ULL << i;
-            // if (bitpos & bs_p_round_constant_and_round) {
-            //     // printf("Line number: %d in p_round_constant \n", i);
-            //     // print_word_in_hex_and_binary(p_round_constant[i]);
-            //     bs_p_round_constant[i] = 0xffffffffffffffffULL;
-            // }
-        }
-
-        // printf ("Q Round constant matrix for round %d\n", round);
-
-        // for (word_t i = 0; i < WORD_SIZE; i++) {
-        //     if (q_round_constant[i] != 0xffffffffffffffffULL) {
-        //         printf("Line number: %d in transposed q_round_constant \n", i);
-        //         print_word_in_hex_and_binary(q_round_constant[i]);
-        //     }
-        // }
-
-
-
-         //////////////////////// PPPPPPPPPPPPP/////////////////////////
-       // for P the modified bits are in the first 64 bytes and for q they are in the last 64 bytes 
-        word_t bs_p_round_constant_and_round = P_CONSTANT_FIRST_ROW ^ round_constant;
-        for (word_t i = 0; i < 64; i++) {
-            // if (p_round_constant[i] != bs_p_round_constant_and_round) {
-            //     printf("Line number: %d in p_round_constant \n", i);
-            //     print_word_in_hex_and_binary(p_round_constant[i]);
-            // }
-            word_t bitpos = 1ULL << i;
-            if (bitpos & bs_p_round_constant_and_round) {
-                // printf("Line number: %d in p_round_constant \n", i);
-                // print_word_in_hex_and_binary(p_round_constant[i]);
-                bs_p_round_constant[i] = 0xffffffffffffffffULL;
-            }
-        }
-
-////////////////////////////////////QQQQQQQQQQ////////////////////////////
-        // for q they are in the last 64 bytes 
-        word_t bs_q_round_constant_and_round = Q_CONSTANT_LAST_ROW ^ round_constant;
-
-        for (word_t i = BLOCK_SIZE - 64, j = 0; i < BLOCK_SIZE; i++, j++) {
-            // if (p_round_constant[i] != bs_p_round_constant_and_round) {
-            //     printf("Line number: %d in p_round_constant \n", i);
-            //     print_word_in_hex_and_binary(p_round_constant[i]);
-            // }
-            word_t bitpos = 1ULL << j;
-            if ((bitpos & bs_q_round_constant_and_round) == 0) {
-                // printf("Line number: %d in p_round_constant \n", i);
-                // print_word_in_hex_and_binary(p_round_constant[i]);
-                bs_q_round_constant[i] = 0x0000000000000000ULL;
-            }
-        }
-
-        // p_round_constant and bs_p_round_constant should be the same
-        for (word_t i = 0; i < BLOCK_SIZE; i++) {
-            if (p_round_constant[i] != bs_p_round_constant[i]) {
-                printf("Line number: %d in p_round_constant \n", i);
-                print_word_in_hex_and_binary(p_round_constant[i]);
-
-                printf("Line number: %d in bs_p_round_constant \n", i);
-                print_word_in_hex_and_binary(bs_p_round_constant[i]);
-            }
-        }
-
-        // q_round_constant and bs_q_round_constant should be the same
-        for (word_t i = 0; i < BLOCK_SIZE; i++) {
-            if (q_round_constant[i] != bs_q_round_constant[i]) {
-                printf("Line number: %d in q_round_constant \n", i);
-                print_word_in_hex_and_binary(q_round_constant[i]);
-
-                printf("Line number: %d in bs_q_round_constant \n", i);
-                print_word_in_hex_and_binary(bs_q_round_constant[i]);
-            }
-        }
-
-         
-
-        // for (int i = 0; i < BLOCK_SIZE; i++) {
-        //     if (p_round_constant[i] != 0x0000000000000000ULL) {
-
-        //         printf("Line number: %d in p_round_constant \n", i);
-        //         print_word_in_hex_and_binary(p_round_constant[i]);
-        //     }
-        // }
-
-        // for (int i = 0; i < BLOCK_SIZE; i++) {
-        //     if (q_round_constant[i] != 0xffffffffffffffffULL) {
-        //         printf("Line number: %d in q_round_constant\n", i);
-        //         print_word_in_hex_and_binary(q_round_constant[i]);
-        //     }
-        // }
 }
 
 void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
@@ -1666,11 +1513,6 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
     word_t round = 0;
     word_t bs_p_round_constant[BLOCK_SIZE];
     word_t bs_q_round_constant[BLOCK_SIZE];
-
-    // word_t p_round_constant[BLOCK_SIZE];
-    // word_t q_round_constant[BLOCK_SIZE];
-    // memset(p_round_constant, 0, sizeof(p_round_constant));
-    // memset(q_round_constant, 0, sizeof(q_round_constant));
 
     word_t bs_m64_m[BLOCK_SIZE];
     word_t bs_m64_hm[BLOCK_SIZE];
@@ -1683,40 +1525,16 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
         bs_m64_m[word_index] = input[word_index];
         bs_m64_hm[word_index] = state[word_index] ^ bs_m64_m[word_index];
     }
-    // printf("\ninput P before xor with round constant\n");
-    // printArray(bs_m64_hm);
-
-    // printf("\ninput Q before xor with round constant\n");
-    // printArray(bs_m64_m);
-
-    // word_t bs_tmp_copy[BLOCK_SIZE];
-    // memset(bs_tmp_copy, 0, sizeof(bs_tmp_copy));
-
-    // printf("\ninput \n");
-    // printArray(input);
 
     // technically P/Q can be parralelized from here but there does not seem to be much performance gain. Check branch bs_multithreaded
     for (round = 0; round < 10; round++)
     {
 
-        // for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
-        //     if (bs_p_round_constant[word_index] != bs_p_round_constant_minimal[word_index]){
-        //         printf("bs_p_round_constant[word_index] != bs_p_round_constant_minimal[word_index]\n");
-        //         print_word_in_hex_and_binary(bs_p_round_constant[word_index]);
-        //     }
-        // }
         memset(bs_p_round_constant, 0, sizeof(bs_p_round_constant));
         memset(bs_q_round_constant, 0xff, sizeof(bs_q_round_constant)); // setting to 0xff since we are XORing with 0xff in Q. reset start of every round.
 
         bs_generate_roundc_matrix_p_minimal(bs_p_round_constant, round);
         bs_generate_roundc_matrix_q_minimal(bs_q_round_constant, round);
-
-        // for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
-        //     if (bs_q_round_constant[word_index] != bs_q_round_constant_minimal[word_index]){
-        //         printf("bs_q_round_constant[wowrd_index] != bs_q_round_constant_minimal[word_index]\n");
-        //         print_word_in_hex_and_binary(bs_q_round_constant[word_index]);
-        //     }
-        // }
 
 
         // non bit sliced
