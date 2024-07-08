@@ -3,6 +3,7 @@
 //Copyright 2024 Fawad Haider
 #include <string.h>
 #include "bs.h"
+// #include <arm_neon.h>
 
 #if (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) ||\
         defined(__amd64__) || defined(__amd32__)|| defined(__amd16__)
@@ -19,7 +20,62 @@
     #include <stdio.h>
 #include "hash.h"
 #include <inttypes.h> // for PRId64 macro
-void sbox_bitsliced(word_t *in);
+#include "round_constants.h"
+
+word_t bs_p_round_constant_global[ROUNDS512][BLOCK_SIZE];
+word_t bs_q_round_constant_global[ROUNDS512][BLOCK_SIZE];
+void bs_gf_add(word_t * A, word_t * B);
+
+void generate_round_constants_header() {
+    FILE *header_file = fopen("round_constants.h", "w");
+    if (header_file == NULL) {
+        printf("Error creating header file\n");
+        return;
+    }
+
+    fprintf(header_file, "#ifndef ROUND_CONSTANTS_H\n");
+    fprintf(header_file, "#define ROUND_CONSTANTS_H\n\n");
+
+    fprintf(header_file, "#include <inttypes.h>\n\n");
+
+    fprintf(header_file, "const word_t P_ROUND_CONSTANTS[ROUNDS512][BLOCK_SIZE] = {\n");
+    for (int round = 0; round < ROUNDS512; round++) {
+        fprintf(header_file, "    {");
+        for (int i = 0; i < BLOCK_SIZE; i++) {
+            fprintf(header_file, "0x%" PRIx64 "ULL", bs_p_round_constant_global[round][i]);
+            if (i != BLOCK_SIZE - 1) {
+                fprintf(header_file, ", ");
+            }
+        }
+        fprintf(header_file, "}");
+        if (round != ROUNDS512 - 1) {
+            fprintf(header_file, ",");
+        }
+        fprintf(header_file, "\n");
+    }
+    fprintf(header_file, "};\n\n");
+
+    fprintf(header_file, "const word_t Q_ROUND_CONSTANTS[ROUNDS512][BLOCK_SIZE] = {\n");
+    for (int round = 0; round < ROUNDS512; round++) {
+        fprintf(header_file, "    {");
+        for (int i = 0; i < BLOCK_SIZE; i++) {
+            fprintf(header_file, "0x%" PRIx64 "ULL", bs_q_round_constant_global[round][i]);
+            if (i != BLOCK_SIZE - 1) {
+                fprintf(header_file, ", ");
+            }
+        }
+        fprintf(header_file, "}");
+        if (round != ROUNDS512 - 1) {
+            fprintf(header_file, ",");
+        }
+        fprintf(header_file, "\n");
+    }
+    fprintf(header_file, "};\n\n");
+
+    fprintf(header_file, "#endif // ROUND_CONSTANTS_H\n");
+
+    fclose(header_file);
+}
 //unbitsliced subbytes
 void printArray(word_t* array) {
   int i;
@@ -206,7 +262,7 @@ void bs_sbox(word_t *U)
     U[3] = L20 ^ L22;
     U[2] = L25 ^ L29;
      U[1] = ~(L13 ^ L27);//  <-- original
-//    U[1] = (L13 ^ L27);
+
     U[0] = ~(L6 ^ L23);
 
     // memmove(U,S,sizeof(S));
@@ -217,34 +273,33 @@ void bs_transpose(word_t * blocks, word_t width_to_adjacent_block)
     word_t transpose[BLOCK_SIZE];
     memset(transpose, 0, sizeof(transpose));
     bs_transpose_dst(transpose,blocks, width_to_adjacent_block);
-    int sizeof_transpose = sizeof(transpose);
 
-    // memmove(blocks,transpose,sizeof(transpose));
+    int sizeof_transpose = sizeof(transpose);
+    memmove(blocks,transpose,sizeof(transpose));
 
     // TODO : cleanup
 
-    // word_t transpose_rev[BLOCK_SIZE];
-    // // note to do rev transpose and make sure we get the same result
-    // int sizeof_transpose_rev = sizeof(transpose_rev);
+//     word_t transpose_rev[BLOCK_SIZE];
+//     // note to do rev transpose and make sure we get the same result
+//     int sizeof_transpose_rev = sizeof(transpose_rev);
 
-    // memset(transpose_rev, 0, sizeof(transpose_rev));
-    // memcpy(transpose_rev, transpose, sizeof(transpose_rev));
-    // if (sizeof_transpose != sizeof_transpose_rev){
-    //     printf("\nERROOOOOOOOOOOOOOOOOR\n");
-    //     printf("sizeof_transpose != sizeof_transpose_rev\n");
-    // }
+//     memset(transpose_rev, 0, sizeof(transpose_rev));
+//     memcpy(transpose_rev, transpose, sizeof(transpose_rev));
+//     if (sizeof_transpose != sizeof_transpose_rev){
+//         printf("\nERROOOOOOOOOOOOOOOOOR\n");
+//         printf("sizeof_transpose != sizeof_transpose_rev\n");
+//     }
     
-    // bs_transpose_rev(transpose_rev);
+//     bs_transpose_rev(transpose_rev, 1);
 
-    // for (int i = 0; i < BLOCK_SIZE; i++){
-    //     if (blocks[i] != transpose_rev[i]){
-    //         printf("\nERROOOOOOOOOOOOOOOOOR\n");
-    //         printf("transpose[%d] != transpose_rev[%d]\n", i, i);
-    //     }
-    // }
+//     for (int i = 0; i < BLOCK_SIZE; i++){
+//         if (blocks[i] != transpose_rev[i]){
+//             printf("\nERROOOOOOOOOOOOOOOOOR\n");
+//             printf("transpose[%d] != transpose_rev[%d]\n", i, i);
+//         }
+//     }
 
-   memmove(blocks,transpose,sizeof(transpose));
-//   memcpy(blocks,transpose,sizeof(transpose));
+//    memmove(blocks,transpose,sizeof(transpose));
 
 }
 
@@ -905,30 +960,15 @@ void bs_gf_multiply(word_t * B, word_t * A, int C)
     word_t B_space[8];
     memcpy(B_space, B, sizeof(B_space));
     memset(A, 0, sizeof(B_space));
-    // B_space[0] = B[0];
-    // B_space[1] = B[1];
-    // B_space[2] = B[2];
-    // B_space[3] = B[3];
-    // B_space[4] = B[4];
-    // B_space[5] = B[5];
-    // B_space[6] = B[6];
-    // B_space[7] = B[7];
 
     int i;
-    // for(i=0; i<8; i++)
-    // {
-    //     A[i] = 0;
-    // }
     int b_index = 0;
     int j = 0;
     for(i=0; i<8; i++)
     {
         if(C & 1)
         {
-            // for (j = i, b_index = 0; j < 8; j++, b_index++)
-            // {
-            //    A[j] ^= B[b_index];
-            // }
+            // bs_gf_add(A, B_space);
             for (j = 0; j < 8; j++)
             {
                 A[j] ^= B_space[j];
@@ -940,15 +980,21 @@ void bs_gf_multiply(word_t * B, word_t * A, int C)
         C >>= 1;
 
         // shift B_space to the left by 1
-        word_t MSB = B_space[7];
-        for (j = 7; j > 0; j--)
-        {
-            B_space[j] = B_space[j -1 ];
-        }
-        B_space[0] = 0;
+        // word_t MSB = B_space[7];
+        // for (j = 7; j > 0; j--)
+        // {
+        //     B_space[j] = B_space[j -1 ];
+        // }
         
+        word_t MSB = B_space[7];
+        memmove(&B_space[1], &B_space[0], 7 * sizeof(word_t));
+
         // if MSB is 1, then we need to XOR with 0x1b
-        B_space[0] ^= MSB;
+
+        // B_space[0] = 0;
+        // B_space[0] ^= MSB;
+
+        B_space[0] = MSB; // equivalent to above two lines which are commented
         B_space[1] ^= MSB;
         B_space[3] ^= MSB;
         B_space[4] ^= MSB;
@@ -956,7 +1002,6 @@ void bs_gf_multiply(word_t * B, word_t * A, int C)
         //B += WORD_SIZE;
     }
 }
-
 
 // A has the result
 void bs_gf_add(word_t * A, word_t * B)
@@ -966,7 +1011,30 @@ void bs_gf_add(word_t * A, word_t * B)
     {
         A[i] ^= B[i];
     }
+    // uint64x2_t va1 = vld1q_u64(&A[0]);
+    // uint64x2_t vb1 = vld1q_u64(&B[0]);
+    
+    // uint64x2_t va2 = vld1q_u64(&A[2]);
+    // uint64x2_t vb2 = vld1q_u64(&B[2]);
+
+    // uint64x2_t va3 = vld1q_u64(&A[4]);
+    // uint64x2_t vb3 = vld1q_u64(&B[4]);
+    
+    // uint64x2_t va4 = vld1q_u64(&A[6]);
+    // uint64x2_t vb4 = vld1q_u64(&B[6]);
+
+    // uint64x2_t result1 = veorq_u64(va1, vb1);
+    // uint64x2_t result2 = veorq_u64(va2, vb2);
+    // uint64x2_t result3 = veorq_u64(va3, vb3);
+    // uint64x2_t result4 = veorq_u64(va4, vb4);
+
+    // vst1q_u64(&A[0], result1);
+    // vst1q_u64(&A[2], result2);
+    // vst1q_u64(&A[4], result3);
+    // vst1q_u64(&A[6], result4);
+
 }
+
 void print_word_t_var(word_t var[8]) {
     printf("\n");
     for(int i = 0; i < 8; i++) {
@@ -982,7 +1050,7 @@ void bs_mixbytes(word_t * B)
     word_t * Bp = Bp_space;
     word_t tmpProducts[8];
 
-    // to understand this, see. That will give an idea of how to implement this. especialy sarrless multiplication in a nonbitsliced way.
+    // to understand this, see. That will give an idea of how to implement this. especialy carryless multiplication in a nonbitsliced way.
     // https://en.wikipedia.org/wiki/Rijndael_mix_columns
     
     int i = 0;
@@ -1508,6 +1576,7 @@ void bs_generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_cons
         bs_transpose(q_round_constant,1);
 }
 
+
 void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
 {
     word_t round = 0;
@@ -1526,24 +1595,26 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
         bs_m64_hm[word_index] = state[word_index] ^ bs_m64_m[word_index];
     }
 
+   
+
     // technically P/Q can be parralelized from here but there does not seem to be much performance gain. Check branch bs_multithreaded
     for (round = 0; round < 10; round++)
     {
+        // memset(bs_p_round_constant, 0, sizeof(bs_p_round_constant));
+        // memset(bs_q_round_constant, 0xff, sizeof(bs_q_round_constant)); // setting to 0xff since we are XORing with 0xff in Q. reset start of every round.
 
-        memset(bs_p_round_constant, 0, sizeof(bs_p_round_constant));
-        memset(bs_q_round_constant, 0xff, sizeof(bs_q_round_constant)); // setting to 0xff since we are XORing with 0xff in Q. reset start of every round.
+        // bs_generate_roundc_matrix_p_minimal(bs_p_round_constant, round);
+        // bs_generate_roundc_matrix_q_minimal(bs_q_round_constant, round);
 
-        bs_generate_roundc_matrix_p_minimal(bs_p_round_constant, round);
-        bs_generate_roundc_matrix_q_minimal(bs_q_round_constant, round);
-
-
-        // non bit sliced
-        // generate_roundc_matrix(bs_p_round_constant, bs_q_round_constant, round);
 
         // XOR with round constants
         for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
-            bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
-           bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
+            bs_m64_m[word_index] ^= Q_ROUND_CONSTANTS[round][word_index]; // for Q
+           bs_m64_hm[word_index] ^= P_ROUND_CONSTANTS[round][word_index]; // for P
+
+
+        //    bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
+        //    bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
         }
 
         // P 
@@ -1557,6 +1628,8 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
         bs_mixbytes(bs_m64_m);
 
     }
+
+  //  generate_round_constants_header();
 
     // printf("\nQ bs_m64_m before XOR with state  \n");
     // printArray(bs_m64_m);

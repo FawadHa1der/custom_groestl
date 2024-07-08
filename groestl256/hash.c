@@ -317,7 +317,7 @@ HashReturn hash_binius_input(int hash_bit_len,
 
   }
 
-  // Wait for all threads to complete
+  // // Wait for all threads to complete
   // for (int instance_index = 0 ; instance_index < top_level_instances; instance_index++){
   //   pthread_join(threads_args[instance_index].thread_id, NULL);
   // }
