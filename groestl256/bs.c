@@ -967,7 +967,6 @@ void bs_gf_multiply(word_t * B, word_t * A, int C)
     {
         if(C & 1)
         {
-            // bs_gf_add(A, B_space);
             for (j = 0; j < 8; j++)
             {
                 A[j] ^= B_space[j];
@@ -998,7 +997,6 @@ void bs_gf_multiply(word_t * B, word_t * A, int C)
         B_space[3] ^= MSB;
         B_space[4] ^= MSB;
 
-        //B += WORD_SIZE;
     }
 }
 
