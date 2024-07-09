@@ -24,7 +24,9 @@
 
 word_t bs_p_round_constant_global[ROUNDS512][BLOCK_SIZE];
 word_t bs_q_round_constant_global[ROUNDS512][BLOCK_SIZE];
+
 void bs_gf_add(word_t * A, word_t * B);
+void bs_gf_multiply(word_t * B, word_t * A, int C);
 
 void generate_round_constants_header() {
     FILE *header_file = fopen("round_constants.h", "w");
@@ -103,8 +105,6 @@ void bs_apply_sbox(word_t * input)
      // sbox_bitsliced(input+i);
     }
 }
-
-
 
 
 
@@ -713,23 +713,23 @@ void bs_shiftrows_q(word_t * B)
         Bp[B7 + 7] = Br7[7];
 
         // 64 cus thats the number of elements in the matrix. 
-        offsetr0 = (offsetr0 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
-        offsetr1 = (offsetr1 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
-        offsetr2 = (offsetr2 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
-        offsetr3 = (offsetr3 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
-        offsetr4 = (offsetr4 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
-        offsetr5 = (offsetr5 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
-        offsetr6 = (offsetr6 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
-        offsetr7 = (offsetr7 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
+        // offsetr0 = (offsetr0 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
+        // offsetr1 = (offsetr1 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
+        // offsetr2 = (offsetr2 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
+        // offsetr3 = (offsetr3 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
+        // offsetr4 = (offsetr4 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
+        // offsetr5 = (offsetr5 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
+        // offsetr6 = (offsetr6 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
+        // offsetr7 = (offsetr7 + BLOCK_SIZE/64 + BLOCK_SIZE/8) & 0x1FF;
 
-        Br0 = B + offsetr0;
-        Br1 = B + offsetr1;
-        Br2 = B + offsetr2;
-        Br3 = B + offsetr3;
-        Br4 = B + offsetr4;
-        Br5 = B + offsetr5;
-        Br6 = B + offsetr6;
-        Br7 = B + offsetr7;
+        // Br0 = B + offsetr0;
+        // Br1 = B + offsetr1;
+        // Br2 = B + offsetr2;
+        // Br3 = B + offsetr3;
+        // Br4 = B + offsetr4;
+        // Br5 = B + offsetr5;
+        // Br6 = B + offsetr6;
+        // Br7 = B + offsetr7;
 
         Bp += 8;
     }
@@ -955,7 +955,6 @@ void bs_gf_multiply(word_t * B, word_t * A, int C)
     // A is word_t[8] for the result
     // C is the constant multiplier
 
-
     // lets create a local copy of B
     word_t B_space[8];
     memcpy(B_space, B, sizeof(B_space));
@@ -1056,308 +1055,308 @@ void bs_mixbytes(word_t * B)
     int i = 0;
     for (; i < 8; i++)
     {
-    // NEW_S00 = 2S00 + 2S01 + 3S02 + 4SO3 + 5S04 + 3S05 + 5S06 + 7S07
-    // NEW_S01 = 7S00 + 2S01 + 2S02 + 3SO3 + 4S04 + 5S05 + 3S06 + 5S07
-    // NEW_S02 = 5S00 + 7S01 + 2S02 + 2SO3 + 3S04 + 4S05 + 5S06 + 3S07
-    // NEW_S03 = 3S00 + 5S01 + 7S02 + 2SO3 + 2S04 + 3S05 + 4S06 + 5S07
-    // NEW_S04 = 5S00 + 3S01 + 5S02 + 7SO3 + 2S04 + 2S05 + 3S06 + 4S07
-    // NEW_S05 = 4S00 + 5S01 + 3S02 + 5SO3 + 7S04 + 2S05 + 2S06 + 3S07
-    // NEW_S06 = 3S00 + 4S01 + 5S02 + 3SO3 + 5S04 + 7S05 + 2S06 + 2S07
-    // NEW_S07 = 2S00 + 3S01 + 4S02 + 5SO3 + 3S04 + 5S05 + 7S06 + 2S07
+        // NEW_S00 = 2S00 + 2S01 + 3S02 + 4SO3 + 5S04 + 3S05 + 5S06 + 7S07
+        // NEW_S01 = 7S00 + 2S01 + 2S02 + 3SO3 + 4S04 + 5S05 + 3S06 + 5S07
+        // NEW_S02 = 5S00 + 7S01 + 2S02 + 2SO3 + 3S04 + 4S05 + 5S06 + 3S07
+        // NEW_S03 = 3S00 + 5S01 + 7S02 + 2SO3 + 2S04 + 3S05 + 4S06 + 5S07
+        // NEW_S04 = 5S00 + 3S01 + 5S02 + 7SO3 + 2S04 + 2S05 + 3S06 + 4S07
+        // NEW_S05 = 4S00 + 5S01 + 3S02 + 5SO3 + 7S04 + 2S05 + 2S06 + 3S07
+        // NEW_S06 = 3S00 + 4S01 + 5S02 + 3SO3 + 5S04 + 7S05 + 2S06 + 2S07
+        // NEW_S07 = 2S00 + 3S01 + 4S02 + 5SO3 + 3S04 + 5S05 + 7S06 + 2S07
 
-    //  of = A0 ^ A1;
-    //  A0 = A0 ^ (0x1b & ((signed char)of>>7));
+        //  of = A0 ^ A1;
+        //  A0 = A0 ^ (0x1b & ((signed char)of>>7));
 
-    //// 2 * A0
-    //  A0 = A0 ^ (A0 << 1)
+        //// 2 * A0
+        //  A0 = A0 ^ (A0 << 1)
 
-    //// + 3 * A1
-    //  A0 = A0 ^ (A1)
-    //  A0 = A0 ^ (A1<<1)
+        //// + 3 * A1
+        //  A0 = A0 ^ (A1)
+        //  A0 = A0 ^ (A1<<1)
 
-    //// + A2 + A3
-    //  A0 = A0 ^ (A2)
-    //  A0 = A0 ^ (A3)
-    //          A0.7    A1.7
+        //// + A2 + A3
+        //  A0 = A0 ^ (A2)
+        //  A0 = A0 ^ (A3)
+        //          A0.7    A1.7
 
-    // NEW_S00 = 2S00 + 2S01 + 3S02 + 4SO3 + 5S04 + 3S05 + 5S06 + 7S07
+        // NEW_S00 = 2S00 + 2S01 + 3S02 + 4SO3 + 5S04 + 3S05 + 5S06 + 7S07
 
-    // word_t of = B[A0+7] ^ B[A1+7] ^ B[A2+7];
-    // 2S00
+        // word_t of = B[A0+7] ^ B[A1+7] ^ B[A2+7];
+        // 2S00
 
-    bs_gf_multiply(&B[A0], tmpProducts, 2);
-    bs_gf_add(&Bp[A0], tmpProducts);
+        bs_gf_multiply(&B[A0], tmpProducts, 2);
+        bs_gf_add(&Bp[A0], tmpProducts);
 
-    // 2S01
-    bs_gf_multiply(&B[A1], tmpProducts, 2);
-    bs_gf_add(&Bp[A0], tmpProducts);
+        // 2S01
+        bs_gf_multiply(&B[A1], tmpProducts, 2);
+        bs_gf_add(&Bp[A0], tmpProducts);
 
 
-    // 3S02
-    bs_gf_multiply(&B[A2], tmpProducts, 3);
-    bs_gf_add(&Bp[A0], tmpProducts);
+        // 3S02
+        bs_gf_multiply(&B[A2], tmpProducts, 3);
+        bs_gf_add(&Bp[A0], tmpProducts);
 
-    // 4S03
-    bs_gf_multiply(&B[A3], tmpProducts, 4);
-    bs_gf_add(&Bp[A0], tmpProducts);
+        // 4S03
+        bs_gf_multiply(&B[A3], tmpProducts, 4);
+        bs_gf_add(&Bp[A0], tmpProducts);
 
-    // 5S04
-    bs_gf_multiply(&B[A4], tmpProducts, 5);
-    bs_gf_add(&Bp[A0], tmpProducts);
+        // 5S04
+        bs_gf_multiply(&B[A4], tmpProducts, 5);
+        bs_gf_add(&Bp[A0], tmpProducts);
 
-    // 3S05
-    bs_gf_multiply(&B[A5], tmpProducts, 3);
-    bs_gf_add(&Bp[A0], tmpProducts);
+        // 3S05
+        bs_gf_multiply(&B[A5], tmpProducts, 3);
+        bs_gf_add(&Bp[A0], tmpProducts);
 
-    // 5S06
-    bs_gf_multiply(&B[A6], tmpProducts, 5);
-    bs_gf_add(&Bp[A0], tmpProducts);
+        // 5S06
+        bs_gf_multiply(&B[A6], tmpProducts, 5);
+        bs_gf_add(&Bp[A0], tmpProducts);
 
-    // 7S07
-    bs_gf_multiply(&B[A7], tmpProducts, 7);
-    bs_gf_add(&Bp[A0], tmpProducts);
+        // 7S07
+        bs_gf_multiply(&B[A7], tmpProducts, 7);
+        bs_gf_add(&Bp[A0], tmpProducts);
 
-    // NEW_S01 = 7S00 + 2S01 + 2S02 + 3S03 + 4S04 + 5S05 + 3S06 + 5S07
+        // NEW_S01 = 7S00 + 2S01 + 2S02 + 3S03 + 4S04 + 5S05 + 3S06 + 5S07
 
-    // 7S00
-    bs_gf_multiply(&B[A0], tmpProducts, 7);
-    bs_gf_add(&Bp[A1], tmpProducts);
+        // 7S00
+        bs_gf_multiply(&B[A0], tmpProducts, 7);
+        bs_gf_add(&Bp[A1], tmpProducts);
 
-    // 2S01
-    bs_gf_multiply(&B[A1], tmpProducts, 2);
-    bs_gf_add(&Bp[A1], tmpProducts);
+        // 2S01
+        bs_gf_multiply(&B[A1], tmpProducts, 2);
+        bs_gf_add(&Bp[A1], tmpProducts);
 
-    // 2S02
-    bs_gf_multiply(&B[A2], tmpProducts, 2);
-    bs_gf_add(&Bp[A1], tmpProducts);
+        // 2S02
+        bs_gf_multiply(&B[A2], tmpProducts, 2);
+        bs_gf_add(&Bp[A1], tmpProducts);
 
-    // 3S03
-    bs_gf_multiply(&B[A3], tmpProducts, 3);
-    bs_gf_add(&Bp[A1], tmpProducts);
+        // 3S03
+        bs_gf_multiply(&B[A3], tmpProducts, 3);
+        bs_gf_add(&Bp[A1], tmpProducts);
 
-    // 4S04
-    bs_gf_multiply(&B[A4], tmpProducts, 4);
-    bs_gf_add(&Bp[A1], tmpProducts);
+        // 4S04
+        bs_gf_multiply(&B[A4], tmpProducts, 4);
+        bs_gf_add(&Bp[A1], tmpProducts);
 
-    // 5S05
-    bs_gf_multiply(&B[A5], tmpProducts, 5);
-    bs_gf_add(&Bp[A1], tmpProducts);
+        // 5S05
+        bs_gf_multiply(&B[A5], tmpProducts, 5);
+        bs_gf_add(&Bp[A1], tmpProducts);
 
-    // 3S06
-    bs_gf_multiply(&B[A6], tmpProducts, 3);
-    bs_gf_add(&Bp[A1], tmpProducts);
+        // 3S06
+        bs_gf_multiply(&B[A6], tmpProducts, 3);
+        bs_gf_add(&Bp[A1], tmpProducts);
 
-    // 5S07
-    bs_gf_multiply(&B[A7], tmpProducts, 5);
-    bs_gf_add(&Bp[A1], tmpProducts);
+        // 5S07
+        bs_gf_multiply(&B[A7], tmpProducts, 5);
+        bs_gf_add(&Bp[A1], tmpProducts);
 
-    // NEW_S02 = 5S00 + 7S01 + 2S02 + 2S03 + 3S04 + 4S05 + 5S06 + 3S07
+        // NEW_S02 = 5S00 + 7S01 + 2S02 + 2S03 + 3S04 + 4S05 + 5S06 + 3S07
 
-    // 5S00
-    bs_gf_multiply(&B[A0], tmpProducts, 5);
-    bs_gf_add(&Bp[A2], tmpProducts);
+        // 5S00
+        bs_gf_multiply(&B[A0], tmpProducts, 5);
+        bs_gf_add(&Bp[A2], tmpProducts);
 
-    // 7S01
-    bs_gf_multiply(&B[A1], tmpProducts, 7);
-    bs_gf_add(&Bp[A2], tmpProducts);
+        // 7S01
+        bs_gf_multiply(&B[A1], tmpProducts, 7);
+        bs_gf_add(&Bp[A2], tmpProducts);
 
-    // 2S02
-    bs_gf_multiply(&B[A2], tmpProducts, 2);
-    bs_gf_add(&Bp[A2], tmpProducts);
+        // 2S02
+        bs_gf_multiply(&B[A2], tmpProducts, 2);
+        bs_gf_add(&Bp[A2], tmpProducts);
 
-    // 2S03
-    bs_gf_multiply(&B[A3], tmpProducts, 2);
-    bs_gf_add(&Bp[A2], tmpProducts);
+        // 2S03
+        bs_gf_multiply(&B[A3], tmpProducts, 2);
+        bs_gf_add(&Bp[A2], tmpProducts);
 
-    // 3S04
-    bs_gf_multiply(&B[A4], tmpProducts, 3);
-    bs_gf_add(&Bp[A2], tmpProducts);
+        // 3S04
+        bs_gf_multiply(&B[A4], tmpProducts, 3);
+        bs_gf_add(&Bp[A2], tmpProducts);
 
-    // 4S05
-    bs_gf_multiply(&B[A5], tmpProducts, 4);
-    bs_gf_add(&Bp[A2], tmpProducts);
+        // 4S05
+        bs_gf_multiply(&B[A5], tmpProducts, 4);
+        bs_gf_add(&Bp[A2], tmpProducts);
 
-    // 5S06
-    bs_gf_multiply(&B[A6], tmpProducts, 5);
-    bs_gf_add(&Bp[A2], tmpProducts);
+        // 5S06
+        bs_gf_multiply(&B[A6], tmpProducts, 5);
+        bs_gf_add(&Bp[A2], tmpProducts);
 
-    // 3S07
-    bs_gf_multiply(&B[A7], tmpProducts, 3);
-    bs_gf_add(&Bp[A2], tmpProducts);
+        // 3S07
+        bs_gf_multiply(&B[A7], tmpProducts, 3);
+        bs_gf_add(&Bp[A2], tmpProducts);
 
-    // NEW_S03 = 3S00 + 5S01 + 7S02 + 2S03 + 2S04 + 3S05 + 4S06 + 5S07
+        // NEW_S03 = 3S00 + 5S01 + 7S02 + 2S03 + 2S04 + 3S05 + 4S06 + 5S07
 
-    // 3S00
-    bs_gf_multiply(&B[A0], tmpProducts, 3);
-    bs_gf_add(&Bp[A3], tmpProducts);
+        // 3S00
+        bs_gf_multiply(&B[A0], tmpProducts, 3);
+        bs_gf_add(&Bp[A3], tmpProducts);
 
-    // 5S01
-    bs_gf_multiply(&B[A1], tmpProducts, 5);
-    bs_gf_add(&Bp[A3], tmpProducts);
+        // 5S01
+        bs_gf_multiply(&B[A1], tmpProducts, 5);
+        bs_gf_add(&Bp[A3], tmpProducts);
 
-    // 7S02
-    bs_gf_multiply(&B[A2], tmpProducts, 7);
-    bs_gf_add(&Bp[A3], tmpProducts);
+        // 7S02
+        bs_gf_multiply(&B[A2], tmpProducts, 7);
+        bs_gf_add(&Bp[A3], tmpProducts);
 
-    // 2S03
-    bs_gf_multiply(&B[A3], tmpProducts, 2);
-    bs_gf_add(&Bp[A3], tmpProducts);
+        // 2S03
+        bs_gf_multiply(&B[A3], tmpProducts, 2);
+        bs_gf_add(&Bp[A3], tmpProducts);
 
-    // 2S04
-    bs_gf_multiply(&B[A4], tmpProducts, 2);
-    bs_gf_add(&Bp[A3], tmpProducts);
+        // 2S04
+        bs_gf_multiply(&B[A4], tmpProducts, 2);
+        bs_gf_add(&Bp[A3], tmpProducts);
 
-    // 3S05
-    bs_gf_multiply(&B[A5], tmpProducts, 3);
-    bs_gf_add(&Bp[A3], tmpProducts);
+        // 3S05
+        bs_gf_multiply(&B[A5], tmpProducts, 3);
+        bs_gf_add(&Bp[A3], tmpProducts);
 
-    // 4S06
-    bs_gf_multiply(&B[A6], tmpProducts, 4);
-    bs_gf_add(&Bp[A3], tmpProducts);
+        // 4S06
+        bs_gf_multiply(&B[A6], tmpProducts, 4);
+        bs_gf_add(&Bp[A3], tmpProducts);
 
-    // 5S07
-    bs_gf_multiply(&B[A7], tmpProducts, 5);
-    bs_gf_add(&Bp[A3], tmpProducts);
+        // 5S07
+        bs_gf_multiply(&B[A7], tmpProducts, 5);
+        bs_gf_add(&Bp[A3], tmpProducts);
 
-    // NEW_S04 = 5S00 + 3S01 + 5S02 + 7S03 + 2S04 + 2S05 + 3S06 + 4S07
+        // NEW_S04 = 5S00 + 3S01 + 5S02 + 7S03 + 2S04 + 2S05 + 3S06 + 4S07
 
-    // 5S00
-    bs_gf_multiply(&B[A0], tmpProducts, 5);
-    bs_gf_add(&Bp[A4], tmpProducts);
+        // 5S00
+        bs_gf_multiply(&B[A0], tmpProducts, 5);
+        bs_gf_add(&Bp[A4], tmpProducts);
 
-    // 3S01
-    bs_gf_multiply(&B[A1], tmpProducts, 3);
-    bs_gf_add(&Bp[A4], tmpProducts);
+        // 3S01
+        bs_gf_multiply(&B[A1], tmpProducts, 3);
+        bs_gf_add(&Bp[A4], tmpProducts);
 
-    // 5S02
-    bs_gf_multiply(&B[A2], tmpProducts, 5);
-    bs_gf_add(&Bp[A4], tmpProducts);
+        // 5S02
+        bs_gf_multiply(&B[A2], tmpProducts, 5);
+        bs_gf_add(&Bp[A4], tmpProducts);
 
-    // 7S03
-    bs_gf_multiply(&B[A3], tmpProducts, 7);
-    bs_gf_add(&Bp[A4], tmpProducts);
+        // 7S03
+        bs_gf_multiply(&B[A3], tmpProducts, 7);
+        bs_gf_add(&Bp[A4], tmpProducts);
 
-    // 2S04
-    bs_gf_multiply(&B[A4], tmpProducts, 2);
-    bs_gf_add(&Bp[A4], tmpProducts);
+        // 2S04
+        bs_gf_multiply(&B[A4], tmpProducts, 2);
+        bs_gf_add(&Bp[A4], tmpProducts);
 
-    // 2S05
-    bs_gf_multiply(&B[A5], tmpProducts, 2);
-    bs_gf_add(&Bp[A4], tmpProducts);
+        // 2S05
+        bs_gf_multiply(&B[A5], tmpProducts, 2);
+        bs_gf_add(&Bp[A4], tmpProducts);
 
-    // 3S06
-    bs_gf_multiply(&B[A6], tmpProducts, 3);
-    bs_gf_add(&Bp[A4], tmpProducts);
+        // 3S06
+        bs_gf_multiply(&B[A6], tmpProducts, 3);
+        bs_gf_add(&Bp[A4], tmpProducts);
 
-    // 4S07
-    bs_gf_multiply(&B[A7], tmpProducts, 4);
-    bs_gf_add(&Bp[A4], tmpProducts);
+        // 4S07
+        bs_gf_multiply(&B[A7], tmpProducts, 4);
+        bs_gf_add(&Bp[A4], tmpProducts);
 
-    // NEW_S05 = 4S00 + 5S01 + 3S02 + 5S03 + 7S04 + 2S05 + 2S06 + 3S07
+        // NEW_S05 = 4S00 + 5S01 + 3S02 + 5S03 + 7S04 + 2S05 + 2S06 + 3S07
 
-    // 4S00
-    bs_gf_multiply(&B[A0], tmpProducts, 4);
-    bs_gf_add(&Bp[A5], tmpProducts);
+        // 4S00
+        bs_gf_multiply(&B[A0], tmpProducts, 4);
+        bs_gf_add(&Bp[A5], tmpProducts);
 
-    // 5S01
-    bs_gf_multiply(&B[A1], tmpProducts, 5);
-    bs_gf_add(&Bp[A5], tmpProducts);
+        // 5S01
+        bs_gf_multiply(&B[A1], tmpProducts, 5);
+        bs_gf_add(&Bp[A5], tmpProducts);
 
-    // 3S02
-    bs_gf_multiply(&B[A2], tmpProducts, 3);
-    bs_gf_add(&Bp[A5], tmpProducts);
+        // 3S02
+        bs_gf_multiply(&B[A2], tmpProducts, 3);
+        bs_gf_add(&Bp[A5], tmpProducts);
 
-    // 5S03
-    bs_gf_multiply(&B[A3], tmpProducts, 5);
-    bs_gf_add(&Bp[A5], tmpProducts);
+        // 5S03
+        bs_gf_multiply(&B[A3], tmpProducts, 5);
+        bs_gf_add(&Bp[A5], tmpProducts);
 
-    // 7S04
-    bs_gf_multiply(&B[A4], tmpProducts, 7);
-    bs_gf_add(&Bp[A5], tmpProducts);
+        // 7S04
+        bs_gf_multiply(&B[A4], tmpProducts, 7);
+        bs_gf_add(&Bp[A5], tmpProducts);
 
-    // 2S05
-    bs_gf_multiply(&B[A5], tmpProducts, 2);
-    bs_gf_add(&Bp[A5], tmpProducts);
+        // 2S05
+        bs_gf_multiply(&B[A5], tmpProducts, 2);
+        bs_gf_add(&Bp[A5], tmpProducts);
 
-    // 2S06
-    bs_gf_multiply(&B[A6], tmpProducts, 2);
-    bs_gf_add(&Bp[A5], tmpProducts);
+        // 2S06
+        bs_gf_multiply(&B[A6], tmpProducts, 2);
+        bs_gf_add(&Bp[A5], tmpProducts);
 
-    // 3S07
-    bs_gf_multiply(&B[A7], tmpProducts, 3);
-    bs_gf_add(&Bp[A5], tmpProducts);
+        // 3S07
+        bs_gf_multiply(&B[A7], tmpProducts, 3);
+        bs_gf_add(&Bp[A5], tmpProducts);
 
-    // NEW_S06 = 3S00 + 4S01 + 5S02 + 3S03 + 5S04 + 7S05 + 2S06 + 2S07
+        // NEW_S06 = 3S00 + 4S01 + 5S02 + 3S03 + 5S04 + 7S05 + 2S06 + 2S07
 
-    // 3S00
-    bs_gf_multiply(&B[A0], tmpProducts, 3);
-    bs_gf_add(&Bp[A6], tmpProducts);
+        // 3S00
+        bs_gf_multiply(&B[A0], tmpProducts, 3);
+        bs_gf_add(&Bp[A6], tmpProducts);
 
-    // 4S01
-    bs_gf_multiply(&B[A1], tmpProducts, 4);
-    bs_gf_add(&Bp[A6], tmpProducts);
+        // 4S01
+        bs_gf_multiply(&B[A1], tmpProducts, 4);
+        bs_gf_add(&Bp[A6], tmpProducts);
 
-    // 5S02
-    bs_gf_multiply(&B[A2], tmpProducts, 5);
-    bs_gf_add(&Bp[A6], tmpProducts);
+        // 5S02
+        bs_gf_multiply(&B[A2], tmpProducts, 5);
+        bs_gf_add(&Bp[A6], tmpProducts);
 
-    // 3S03
-    bs_gf_multiply(&B[A3], tmpProducts, 3);
-    bs_gf_add(&Bp[A6], tmpProducts);
+        // 3S03
+        bs_gf_multiply(&B[A3], tmpProducts, 3);
+        bs_gf_add(&Bp[A6], tmpProducts);
 
-    // 5S04
-    bs_gf_multiply(&B[A4], tmpProducts, 5);
-    bs_gf_add(&Bp[A6], tmpProducts);
+        // 5S04
+        bs_gf_multiply(&B[A4], tmpProducts, 5);
+        bs_gf_add(&Bp[A6], tmpProducts);
 
-    // 7S05
-    bs_gf_multiply(&B[A5], tmpProducts, 7);
-    bs_gf_add(&Bp[A6], tmpProducts);
+        // 7S05
+        bs_gf_multiply(&B[A5], tmpProducts, 7);
+        bs_gf_add(&Bp[A6], tmpProducts);
 
-    // 2S06
-    bs_gf_multiply(&B[A6], tmpProducts, 2);
-    bs_gf_add(&Bp[A6], tmpProducts);
+        // 2S06
+        bs_gf_multiply(&B[A6], tmpProducts, 2);
+        bs_gf_add(&Bp[A6], tmpProducts);
 
-    // 2S07
-    bs_gf_multiply(&B[A7], tmpProducts, 2);
-    bs_gf_add(&Bp[A6], tmpProducts);
+        // 2S07
+        bs_gf_multiply(&B[A7], tmpProducts, 2);
+        bs_gf_add(&Bp[A6], tmpProducts);
 
-    // NEW_S07 = 2S00 + 3S01 + 4S02 + 5S03 + 3S04 + 5S05 + 7S06 + 2S07
+        // NEW_S07 = 2S00 + 3S01 + 4S02 + 5S03 + 3S04 + 5S05 + 7S06 + 2S07
 
-    // 2S00
-    bs_gf_multiply(&B[A0], tmpProducts, 2);
-    bs_gf_add(&Bp[A7], tmpProducts);
+        // 2S00
+        bs_gf_multiply(&B[A0], tmpProducts, 2);
+        bs_gf_add(&Bp[A7], tmpProducts);
 
-    // 3S01
-    bs_gf_multiply(&B[A1], tmpProducts, 3);
-    bs_gf_add(&Bp[A7], tmpProducts);
+        // 3S01
+        bs_gf_multiply(&B[A1], tmpProducts, 3);
+        bs_gf_add(&Bp[A7], tmpProducts);
 
-    // 4S02
-    bs_gf_multiply(&B[A2], tmpProducts, 4);
-    bs_gf_add(&Bp[A7], tmpProducts);
+        // 4S02
+        bs_gf_multiply(&B[A2], tmpProducts, 4);
+        bs_gf_add(&Bp[A7], tmpProducts);
 
-    // 5S03
-    bs_gf_multiply(&B[A3], tmpProducts, 5);
-    bs_gf_add(&Bp[A7], tmpProducts);
+        // 5S03
+        bs_gf_multiply(&B[A3], tmpProducts, 5);
+        bs_gf_add(&Bp[A7], tmpProducts);
 
-    // 3S04
-    bs_gf_multiply(&B[A4], tmpProducts, 3);
-    bs_gf_add(&Bp[A7], tmpProducts);
+        // 3S04
+        bs_gf_multiply(&B[A4], tmpProducts, 3);
+        bs_gf_add(&Bp[A7], tmpProducts);
 
-    // 5S05
-    bs_gf_multiply(&B[A5], tmpProducts, 5);
-    bs_gf_add(&Bp[A7], tmpProducts);
+        // 5S05
+        bs_gf_multiply(&B[A5], tmpProducts, 5);
+        bs_gf_add(&Bp[A7], tmpProducts);
 
-    // 7S06
-    bs_gf_multiply(&B[A6], tmpProducts, 7);
-    bs_gf_add(&Bp[A7], tmpProducts);
+        // 7S06
+        bs_gf_multiply(&B[A6], tmpProducts, 7);
+        bs_gf_add(&Bp[A7], tmpProducts);
 
-    // 2S07
-    bs_gf_multiply(&B[A7], tmpProducts, 2);
-    bs_gf_add(&Bp[A7], tmpProducts);
+        // 2S07
+        bs_gf_multiply(&B[A7], tmpProducts, 2);
+        bs_gf_add(&Bp[A7], tmpProducts);
 
-        //
-    Bp += BLOCK_SIZE/8;
-    B  += BLOCK_SIZE/8;
+            //
+        Bp += BLOCK_SIZE/8;
+        B  += BLOCK_SIZE/8;
 
 
     }

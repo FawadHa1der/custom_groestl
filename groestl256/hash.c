@@ -313,11 +313,11 @@ HashReturn hash_binius_input(int hash_bit_len,
 
     setup_thread_args(&threads_args[instance_index], instance_copy_from_buffer, instance_index, result_to_copy_into, block_info, chunks_in_bs_block_to_process, chunk_length_bytes_original);
     process_top_level_instance(&threads_args[instance_index]);
-    // pthread_create(&threads_args[instance_index].thread_id, NULL, (void*)process_top_level_instance, &threads_args[instance_index]);
+    //pthread_create(&threads_args[instance_index].thread_id, NULL, (void*)process_top_level_instance, &threads_args[instance_index]);
 
   }
 
-  // // Wait for all threads to complete
+  // Wait for all threads to complete
   // for (int instance_index = 0 ; instance_index < top_level_instances; instance_index++){
   //   pthread_join(threads_args[instance_index].thread_id, NULL);
   // }
