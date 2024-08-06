@@ -1211,53 +1211,6 @@ C[1] = T116;
 T117 = T93 ^ T1;
 C[0] = T117;
 
-    // // B is word_t[8] as input. ;
-    // // A is word_t[8] for the result;
-    // // C is the result
-
-    // // lets create a local copy of B
-    // word_t B_space[8];
-    // memcpy(B_space, B, sizeof(B_space));
-    // memset(A, 0, sizeof(B_space));
-
-    // int i;
-    // int b_index = 0;
-    // int j = 0;
-    // for(i=0; i<8; i++)
-    // {
-    //     if(C & 1)
-    //     {
-    //         for (j = 0; j < 8; j++)
-    //         {
-    //             A[j] ^= B_space[j];
-    //         }
-    //     }
-    //     else if (C == 0){
-    //         break;
-    //     }
-    //     C >>= 1;
-
-    //     // shift B_space to the left by 1
-    //     // word_t MSB = B_space[7];
-    //     // for (j = 7; j > 0; j--)
-    //     // {
-    //     //     B_space[j] = B_space[j -1 ];
-    //     // }
-        
-    //     word_t MSB = B_space[7];
-    //     memmove(&B_space[1], &B_space[0], 7 * sizeof(word_t));
-
-    //     // if MSB is 1, then we need to XOR with 0x1b
-
-    //     // B_space[0] = 0;
-    //     // B_space[0] ^= MSB;
-
-    //     B_space[0] = MSB; // equivalent to above two lines which are commented
-    //     B_space[1] ^= MSB;
-    //     B_space[3] ^= MSB;
-    //     B_space[4] ^= MSB;
-
-    // }
 }
 
 
@@ -1352,6 +1305,16 @@ void print_word_t_var(word_t var[8]) {
     printf("\n");
 }
 
+static word_t bs_multiplier_2[8] = {0,0xffffffffffffffffULL,0,0,0,0,0,0};
+
+
+static word_t bs_multiplier_3[8] = {0xffffffffffffffff,0xffffffffffffffffULL, 0,0,0,0,0,0};
+static word_t bs_multiplier_4[8] = {0,0,0xffffffffffffffffULL,0,0,0,0,0};
+
+static word_t bs_multiplier_5[8] = {0xffffffffffffffffULL,0,0xffffffffffffffffULL,0,0,0,0,0};
+static word_t bs_multiplier_7[8] = {0xffffffffffffffffULL,0xffffffffffffffffULL,0xffffffffffffffffULL,0,0,0,0};
+
+
 void bs_mixbytes(word_t * B)
 {
     word_t Bp_space[BLOCK_SIZE];
@@ -1393,30 +1356,6 @@ void bs_mixbytes(word_t * B)
 
         // word_t of = B[A0+7] ^ B[A1+7] ^ B[A2+7];
         // 2S00
-        word_t bs_multiplier_2[8];
-        memset(bs_multiplier_2, 0, sizeof(bs_multiplier_2));
-        bs_multiplier_2[1] = 0xffffffffffffffff; // this should be 2 in bitsliced form
-
-        word_t bs_multiplier_3[8];
-        // this should be 3 in bitsliced form
-        memset(bs_multiplier_3, 0, sizeof(bs_multiplier_3));
-        bs_multiplier_3[0] = 0xffffffffffffffff; 
-        bs_multiplier_3[1] = 0xffffffffffffffff; 
-
-        word_t bs_multiplier_4[8];
-        memset(bs_multiplier_4, 0, sizeof(bs_multiplier_4));
-        bs_multiplier_4[2] = 0xffffffffffffffff; 
-
-        word_t bs_multiplier_5[8];
-        memset(bs_multiplier_5, 0, sizeof(bs_multiplier_5));
-        bs_multiplier_5[0] = 0xffffffffffffffff; 
-        bs_multiplier_5[2] = 0xffffffffffffffff; 
-
-        word_t bs_multiplier_7[8];
-        memset(bs_multiplier_7, 0, sizeof(bs_multiplier_7));
-        bs_multiplier_7[0] = 0xffffffffffffffff; 
-        bs_multiplier_7[1] = 0xffffffffffffffff; 
-        bs_multiplier_7[2] = 0xffffffffffffffff; 
 
 
         
