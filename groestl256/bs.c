@@ -1213,6 +1213,158 @@ C[0] = T117;
 
 }
 
+void bs_gf_multiply_circuit_2(word_t* C, word_t * A)
+{
+
+  word_t n12 = A[7] ^ A[3] ;
+  word_t n13 = n12 ^ A[3] ;
+  word_t n18 = n13 ^ A[0] ;
+  word_t n17 = n13 ^ A[2] ;
+  word_t n9 = A[4] ^ A[0] ;
+  word_t n16 = n9 ^ A[0] ;
+  word_t n10 = A[5] ^ A[1] ;
+  word_t n15 = n10 ^ A[1] ;
+  word_t n11 = A[6] ^ A[2] ;
+  word_t n14 = n11 ^ A[2] ;
+  C[0] = n13 ;
+  C[1] = n18 ;
+  C[2] = A[1] ;
+  C[3] = n17 ;
+  C[4] = n12 ;
+  C[5] = n16 ;
+  C[6] = n15 ;
+  C[7] = n14 ;
+}
+
+void bs_gf_multiply_circuit_3(word_t* C, word_t * A)
+{
+  word_t n12 = A[7] ^ A[3] ;
+  word_t n19 = n12 ^ A[3] ;
+  word_t n27 = n19 ^ A[0] ;
+  word_t n13 = A[1] ^ A[0] ;
+  word_t n26 = n19 ^ n13 ;
+  word_t n18 = A[2] ^ A[1] ;
+  word_t n14 = A[3] ^ A[2] ;
+  word_t n25 = n19 ^ n14 ;
+  word_t n9 = A[4] ^ A[0] ;
+  word_t n23 = n9 ^ A[0] ;
+  word_t n24 = n23 ^ n12 ;
+  word_t n10 = A[5] ^ A[1] ;
+  word_t n15 = n10 ^ n9 ;
+  word_t n22 = n15 ^ n13 ;
+  word_t n11 = A[6] ^ A[2] ;
+  word_t n16 = n11 ^ n10 ;
+  word_t n21 = n18 ^ n16 ;
+  word_t n17 = n12 ^ n11 ;
+  word_t n20 = n17 ^ n14 ;
+  C[0] = n27 ;
+  C[1] = n26 ;
+  C[2] = n18 ;
+  C[3] = n25 ;
+  C[4] = n24 ;
+  C[5] = n22 ;
+  C[6] = n21 ;
+  C[7] = n20 ;
+
+}
+
+void bs_gf_multiply_circuit_4(word_t* C, word_t * A)
+{
+  word_t n11 = A[6] ^ A[2] ;
+  word_t n14 = n11 ^ A[2] ;
+  word_t n12 = A[7] ^ A[3] ;
+  word_t n13 = n12 ^ A[3] ;
+  word_t n20 = n14 ^ n13 ;
+  word_t n19 = n13 ^ A[0] ;
+  word_t n18 = n14 ^ A[1] ;
+  word_t n17 = n13 ^ n11 ;
+  word_t n9 = A[4] ^ A[0] ;
+  word_t n16 = n9 ^ A[0] ;
+  word_t n10 = A[5] ^ A[1] ;
+  word_t n15 = n10 ^ A[1] ;
+  C[0] = n14 ;
+  C[1] = n20 ;
+  C[2] = n19 ;
+  C[3] = n18 ;
+  C[4] = n17 ;
+  C[5] = n12 ;
+  C[6] = n16 ;
+  C[7] = n15 ;
+
+}
+
+void bs_gf_multiply_circuit_5(word_t* C, word_t * A)
+{
+
+  word_t n11 = A[6] ^ A[2] ;
+  word_t n18 = n11 ^ A[2] ;
+  word_t n29 = n18 ^ A[0] ;
+  word_t n12 = A[7] ^ A[3] ;
+  word_t n16 = n12 ^ A[3] ;
+  word_t n27 = n16 ^ A[1] ;
+  word_t n28 = n27 ^ n18 ;
+  word_t n17 = A[2] ^ A[0] ;
+  word_t n26 = n17 ^ n16 ;
+  word_t n13 = A[3] ^ A[1] ;
+  word_t n25 = n18 ^ n13 ;
+  word_t n9 = A[4] ^ A[0] ;
+  word_t n22 = n9 ^ A[0] ;
+  word_t n23 = n22 ^ n16 ;
+  word_t n24 = n23 ^ n11 ;
+  word_t n10 = A[5] ^ A[1] ;
+  word_t n15 = n12 ^ n10 ;
+  word_t n21 = n15 ^ A[1] ;
+  word_t n14 = n11 ^ n9 ;
+  word_t n20 = n17 ^ n14 ;
+  word_t n19 = n15 ^ n13 ;
+  C[0] = n29 ;
+  C[1] = n28 ;
+  C[2] = n26 ;
+  C[3] = n25 ;
+  C[4] = n24 ;
+  C[5] = n21 ;
+  C[6] = n20 ;
+  C[7] = n19 ;
+
+}
+
+void bs_gf_multiply_circuit_7(word_t* C, word_t * A)
+{
+  word_t n12 = A[7] ^ A[3] ;
+  word_t n11 = A[6] ^ A[2] ;
+  word_t n18 = n12 ^ n11 ;
+  word_t n14 = A[3] ^ A[2] ;
+  word_t n22 = n18 ^ n14 ;
+  word_t n34 = n22 ^ A[0] ;
+  word_t n20 = n12 ^ A[3] ;
+  word_t n13 = A[1] ^ A[0] ;
+  word_t n32 = n20 ^ n13 ;
+  word_t n33 = n32 ^ n22 ;
+  word_t n21 = n13 ^ A[2] ;
+  word_t n31 = n21 ^ n20 ;
+  word_t n15 = n14 ^ A[1] ;
+  word_t n30 = n22 ^ n15 ;
+  word_t n9 = A[4] ^ A[0] ;
+  word_t n27 = n9 ^ A[0] ;
+  word_t n28 = n27 ^ n20 ;
+  word_t n29 = n28 ^ n18 ;
+  word_t n10 = A[5] ^ A[1] ;
+  word_t n16 = n10 ^ n9 ;
+  word_t n25 = n16 ^ n12 ;
+  word_t n26 = n25 ^ n13 ;
+  word_t n17 = n16 ^ n11 ;
+  word_t n24 = n21 ^ n17 ;
+  word_t n19 = n18 ^ n10 ;
+  word_t n23 = n19 ^ n15 ;
+  C[0] = n34 ;
+  C[1] = n33 ;
+  C[2] = n31 ;
+  C[3] = n30 ;
+  C[4] = n29 ;
+  C[5] = n26 ;
+  C[6] = n24 ;
+  C[7] = n23 ;
+}
 
 void bs_gf_multiply(word_t * B, word_t * A, int C)
 {
@@ -1305,14 +1457,14 @@ void print_word_t_var(word_t var[8]) {
     printf("\n");
 }
 
-static word_t bs_multiplier_2[8] = {0,0xffffffffffffffffULL,0,0,0,0,0,0};
+//static word_t bs_multiplier_2[8] = {0,0xffffffffffffffffULL,0,0,0,0,0,0};
 
 
-static word_t bs_multiplier_3[8] = {0xffffffffffffffff,0xffffffffffffffffULL, 0,0,0,0,0,0};
-static word_t bs_multiplier_4[8] = {0,0,0xffffffffffffffffULL,0,0,0,0,0};
+// static word_t bs_multiplier_3[8] = {0xffffffffffffffff,0xffffffffffffffffULL, 0,0,0,0,0,0};
+//static word_t bs_multiplier_4[8] = {0,0,0xffffffffffffffffULL,0,0,0,0,0};
 
-static word_t bs_multiplier_5[8] = {0xffffffffffffffffULL,0,0xffffffffffffffffULL,0,0,0,0,0};
-static word_t bs_multiplier_7[8] = {0xffffffffffffffffULL,0xffffffffffffffffULL,0xffffffffffffffffULL,0,0,0,0};
+//static word_t bs_multiplier_5[8] = {0xffffffffffffffffULL,0,0xffffffffffffffffULL,0,0,0,0,0};
+//static word_t bs_multiplier_7[8] = {0xffffffffffffffffULL,0xffffffffffffffffULL,0xffffffffffffffffULL,0,0,0,0};
 
 
 void bs_mixbytes(word_t * B)
@@ -1359,274 +1511,274 @@ void bs_mixbytes(word_t * B)
 
 
         
-        bs_gf_multiply_circuit(tmpProducts, &B[A0], bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A0]);
         bs_gf_add(&Bp[A0], tmpProducts);
 
         // 2S01
-        bs_gf_multiply_circuit(tmpProducts, &B[A1], bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A1]);
         bs_gf_add(&Bp[A0], tmpProducts);
 
 
         // 3S02
-        bs_gf_multiply_circuit(tmpProducts, &B[A2] , bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A2] );
         bs_gf_add(&Bp[A0], tmpProducts);
 
         // 4S03
-        bs_gf_multiply_circuit(tmpProducts, &B[A3],  bs_multiplier_4);
+        bs_gf_multiply_circuit_4(tmpProducts, &B[A3]);
         bs_gf_add(&Bp[A0], tmpProducts);
 
         // 5S04
-        bs_gf_multiply_circuit(tmpProducts, &B[A4],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A4]);
         bs_gf_add(&Bp[A0], tmpProducts);
 
         // 3S05
-        bs_gf_multiply_circuit(tmpProducts, &B[A5],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A5]);
         bs_gf_add(&Bp[A0], tmpProducts);
 
         // 5S06
-        bs_gf_multiply_circuit(tmpProducts, &B[A6],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A6]);
         bs_gf_add(&Bp[A0], tmpProducts);
 
         // 7S07
-        bs_gf_multiply_circuit(tmpProducts, &B[A7],  bs_multiplier_7);
+        bs_gf_multiply_circuit_7(tmpProducts, &B[A7]);
         bs_gf_add(&Bp[A0], tmpProducts);
 
         // NEW_S01 = 7S00 + 2S01 + 2S02 + 3S03 + 4S04 + 5S05 + 3S06 + 5S07
 
         // 7S00
-        bs_gf_multiply_circuit(tmpProducts, &B[A0],  bs_multiplier_7);
+        bs_gf_multiply_circuit_7(tmpProducts, &B[A0]);
         bs_gf_add(&Bp[A1], tmpProducts);
 
         // 2S01
-        bs_gf_multiply_circuit(tmpProducts, &B[A1],  bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A1]);
         bs_gf_add(&Bp[A1], tmpProducts);
 
         // 2S02
-        bs_gf_multiply_circuit(tmpProducts, &B[A2],  bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A2]);
         bs_gf_add(&Bp[A1], tmpProducts);
 
         // 3S03
-        bs_gf_multiply_circuit(tmpProducts, &B[A3],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A3]);
         bs_gf_add(&Bp[A1], tmpProducts);
 
         // 4S04
-        bs_gf_multiply_circuit(tmpProducts, &B[A4],  bs_multiplier_4);
+        bs_gf_multiply_circuit_4(tmpProducts, &B[A4]);
         bs_gf_add(&Bp[A1], tmpProducts);
 
         // 5S05
-        bs_gf_multiply_circuit(tmpProducts, &B[A5],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A5]);
         bs_gf_add(&Bp[A1], tmpProducts);
 
         // 3S06
-        bs_gf_multiply_circuit(tmpProducts, &B[A6],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A6]);
         bs_gf_add(&Bp[A1], tmpProducts);
 
         // 5S07
-        bs_gf_multiply_circuit(tmpProducts, &B[A7],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A7]);
         bs_gf_add(&Bp[A1], tmpProducts);
 
         // NEW_S02 = 5S00 + 7S01 + 2S02 + 2S03 + 3S04 + 4S05 + 5S06 + 3S07
 
         // 5S00
-        bs_gf_multiply_circuit(tmpProducts, &B[A0],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A0]);
         bs_gf_add(&Bp[A2], tmpProducts);
 
         // 7S01
-        bs_gf_multiply_circuit(tmpProducts, &B[A1],  bs_multiplier_7);
+        bs_gf_multiply_circuit_7(tmpProducts, &B[A1]);
         bs_gf_add(&Bp[A2], tmpProducts);
 
         // 2S02
-        bs_gf_multiply_circuit(tmpProducts, &B[A2],  bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A2]);
         bs_gf_add(&Bp[A2], tmpProducts);
 
         // 2S03
-        bs_gf_multiply_circuit(tmpProducts, &B[A3],  bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A3]);
         bs_gf_add(&Bp[A2], tmpProducts);
 
         // 3S04
-        bs_gf_multiply_circuit(tmpProducts, &B[A4],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A4]);
         bs_gf_add(&Bp[A2], tmpProducts);
 
         // 4S05
-        bs_gf_multiply_circuit(tmpProducts, &B[A5],  bs_multiplier_4);
+        bs_gf_multiply_circuit_4(tmpProducts, &B[A5]);
         bs_gf_add(&Bp[A2], tmpProducts);
 
         // 5S06
-        bs_gf_multiply_circuit(tmpProducts, &B[A6],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A6]);
         bs_gf_add(&Bp[A2], tmpProducts);
 
         // 3S07
-        bs_gf_multiply_circuit(tmpProducts, &B[A7],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A7]);
         bs_gf_add(&Bp[A2], tmpProducts);
 
         // NEW_S03 = 3S00 + 5S01 + 7S02 + 2S03 + 2S04 + 3S05 + 4S06 + 5S07
 
         // 3S00
-        bs_gf_multiply_circuit(tmpProducts, &B[A0],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A0]);
         bs_gf_add(&Bp[A3], tmpProducts);
 
         // 5S01
-        bs_gf_multiply_circuit(tmpProducts, &B[A1],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A1]);
         bs_gf_add(&Bp[A3], tmpProducts);
 
         // 7S02
-        bs_gf_multiply_circuit(tmpProducts, &B[A2],  bs_multiplier_7);
+        bs_gf_multiply_circuit_7(tmpProducts, &B[A2]);
         bs_gf_add(&Bp[A3], tmpProducts);
 
         // 2S03
-        bs_gf_multiply_circuit(tmpProducts, &B[A3],  bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A3]);
         bs_gf_add(&Bp[A3], tmpProducts);
 
         // 2S04
-        bs_gf_multiply_circuit(tmpProducts, &B[A4],  bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A4]);
         bs_gf_add(&Bp[A3], tmpProducts);
 
         // 3S05
-        bs_gf_multiply_circuit(tmpProducts, &B[A5],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A5]);
         bs_gf_add(&Bp[A3], tmpProducts);
 
         // 4S06
-        bs_gf_multiply_circuit(tmpProducts, &B[A6],  bs_multiplier_4);
+        bs_gf_multiply_circuit_4(tmpProducts, &B[A6]);
         bs_gf_add(&Bp[A3], tmpProducts);
 
         // 5S07
-        bs_gf_multiply_circuit(tmpProducts, &B[A7],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A7]);
         bs_gf_add(&Bp[A3], tmpProducts);
 
         // NEW_S04 = 5S00 + 3S01 + 5S02 + 7S03 + 2S04 + 2S05 + 3S06 + 4S07
 
         // 5S00
-        bs_gf_multiply_circuit(tmpProducts, &B[A0],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A0]);
         bs_gf_add(&Bp[A4], tmpProducts);
 
         // 3S01
-        bs_gf_multiply_circuit(tmpProducts, &B[A1],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A1]);
         bs_gf_add(&Bp[A4], tmpProducts);
 
         // 5S02
-        bs_gf_multiply_circuit(tmpProducts, &B[A2],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A2]);
         bs_gf_add(&Bp[A4], tmpProducts);
 
         // 7S03
-        bs_gf_multiply_circuit(tmpProducts, &B[A3],  bs_multiplier_7);
+        bs_gf_multiply_circuit_7(tmpProducts, &B[A3]);
         bs_gf_add(&Bp[A4], tmpProducts);
 
         // 2S04
-        bs_gf_multiply_circuit(tmpProducts, &B[A4],  bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A4]);
         bs_gf_add(&Bp[A4], tmpProducts);
 
         // 2S05
-        bs_gf_multiply_circuit(tmpProducts, &B[A5],  bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A5]);
         bs_gf_add(&Bp[A4], tmpProducts);
 
         // 3S06
-        bs_gf_multiply_circuit(tmpProducts, &B[A6],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A6]);
         bs_gf_add(&Bp[A4], tmpProducts);
 
         // 4S07
-        bs_gf_multiply_circuit(tmpProducts, &B[A7],  bs_multiplier_4);
+        bs_gf_multiply_circuit_4(tmpProducts, &B[A7]);
         bs_gf_add(&Bp[A4], tmpProducts);
 
         // NEW_S05 = 4S00 + 5S01 + 3S02 + 5S03 + 7S04 + 2S05 + 2S06 + 3S07
 
         // 4S00
-        bs_gf_multiply_circuit(tmpProducts, &B[A0],  bs_multiplier_4);
+        bs_gf_multiply_circuit_4(tmpProducts, &B[A0]);
         bs_gf_add(&Bp[A5], tmpProducts);
 
         // 5S01
-        bs_gf_multiply_circuit(tmpProducts, &B[A1],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A1]);
         bs_gf_add(&Bp[A5], tmpProducts);
 
         // 3S02
-        bs_gf_multiply_circuit(tmpProducts, &B[A2],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A2]);
         bs_gf_add(&Bp[A5], tmpProducts);
 
         // 5S03
-        bs_gf_multiply_circuit(tmpProducts, &B[A3],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A3]);
         bs_gf_add(&Bp[A5], tmpProducts);
 
         // 7S04
-        bs_gf_multiply_circuit(tmpProducts, &B[A4],  bs_multiplier_7);
+        bs_gf_multiply_circuit_7(tmpProducts, &B[A4]);
         bs_gf_add(&Bp[A5], tmpProducts);
 
         // 2S05
-        bs_gf_multiply_circuit(tmpProducts, &B[A5],  bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A5]);
         bs_gf_add(&Bp[A5], tmpProducts);
 
         // 2S06
-        bs_gf_multiply_circuit(tmpProducts, &B[A6],  bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A6]);
         bs_gf_add(&Bp[A5], tmpProducts);
 
         // 3S07
-        bs_gf_multiply_circuit(tmpProducts, &B[A7],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A7]);
         bs_gf_add(&Bp[A5], tmpProducts);
 
         // NEW_S06 = 3S00 + 4S01 + 5S02 + 3S03 + 5S04 + 7S05 + 2S06 + 2S07
 
         // 3S00
-        bs_gf_multiply_circuit(tmpProducts, &B[A0],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A0]);
         bs_gf_add(&Bp[A6], tmpProducts);
 
         // 4S01
-        bs_gf_multiply_circuit(tmpProducts, &B[A1],  bs_multiplier_4);
+        bs_gf_multiply_circuit_4(tmpProducts, &B[A1]);
         bs_gf_add(&Bp[A6], tmpProducts);
 
         // 5S02
-        bs_gf_multiply_circuit(tmpProducts, &B[A2],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A2]);
         bs_gf_add(&Bp[A6], tmpProducts);
 
         // 3S03
-        bs_gf_multiply_circuit(tmpProducts, &B[A3],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A3]);
         bs_gf_add(&Bp[A6], tmpProducts);
 
         // 5S04
-        bs_gf_multiply_circuit(tmpProducts, &B[A4],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A4]);
         bs_gf_add(&Bp[A6], tmpProducts);
 
         // 7S05
-        bs_gf_multiply_circuit(tmpProducts, &B[A5],  bs_multiplier_7);
+        bs_gf_multiply_circuit_7(tmpProducts, &B[A5]);
         bs_gf_add(&Bp[A6], tmpProducts);
 
         // 2S06
-        bs_gf_multiply_circuit(tmpProducts, &B[A6],  bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A6]);
         bs_gf_add(&Bp[A6], tmpProducts);
 
         // 2S07
-        bs_gf_multiply_circuit(tmpProducts, &B[A7],  bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A7]);
         bs_gf_add(&Bp[A6], tmpProducts);
 
         // NEW_S07 = 2S00 + 3S01 + 4S02 + 5S03 + 3S04 + 5S05 + 7S06 + 2S07
 
         // 2S00
-        bs_gf_multiply_circuit(tmpProducts, &B[A0],  bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A0]);
         bs_gf_add(&Bp[A7], tmpProducts);
 
         // 3S01
-        bs_gf_multiply_circuit(tmpProducts, &B[A1],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A1]);
         bs_gf_add(&Bp[A7], tmpProducts);
 
         // 4S02
-        bs_gf_multiply_circuit(tmpProducts, &B[A2],  bs_multiplier_4);
+        bs_gf_multiply_circuit_4(tmpProducts, &B[A2]);
         bs_gf_add(&Bp[A7], tmpProducts);
 
         // 5S03
-        bs_gf_multiply_circuit(tmpProducts, &B[A3],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A3]);
         bs_gf_add(&Bp[A7], tmpProducts);
 
         // 3S04
-        bs_gf_multiply_circuit(tmpProducts, &B[A4],  bs_multiplier_3);
+        bs_gf_multiply_circuit_3(tmpProducts, &B[A4]);
         bs_gf_add(&Bp[A7], tmpProducts);
 
         // 5S05
-        bs_gf_multiply_circuit(tmpProducts, &B[A5],  bs_multiplier_5);
+        bs_gf_multiply_circuit_5(tmpProducts, &B[A5]);
         bs_gf_add(&Bp[A7], tmpProducts);
 
         // 7S06
-        bs_gf_multiply_circuit(tmpProducts, &B[A6],  bs_multiplier_7);
+        bs_gf_multiply_circuit_7(tmpProducts, &B[A6]);
         bs_gf_add(&Bp[A7], tmpProducts);
 
         // 2S07
-        bs_gf_multiply_circuit(tmpProducts, &B[A7],  bs_multiplier_2);
+        bs_gf_multiply_circuit_2(tmpProducts, &B[A7]);
         bs_gf_add(&Bp[A7], tmpProducts);
 
             //
