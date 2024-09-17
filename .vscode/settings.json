@@ -36,7 +36,10 @@
     "__locale": "c",
     "ios": "c",
     "compare": "c",
-    "cstdint": "c"
+    "cstdint": "c",
+    "bs.h": "c",
+    "forward_list": "c",
+    "system_error": "c"
   },
   "C_Cpp_Runner.cCompilerPath": "clang",
   "C_Cpp_Runner.cppCompilerPath": "clang++",

@@ -71,11 +71,11 @@ void bs_output_transformation_512(word_t *state) {
     for (word_t round = 0; round < 10; round++)
     {
         memset(bs_p_round_constant, 0, sizeof (bs_p_round_constant));
-        bs_generate_roundc_matrix_p_minimal(bs_p_round_constant, round);
+        bs_generate_roundc_matrix_p_minimal(bs_m64_hm, bs_p_round_constant, round);
         // XOR with round constants
-        for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
-            bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
-        }
+        // for (int word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
+        //     bs_m64_hm[word_index] ^= bs_p_round_constant[word_index]; // for P
+        // }
 
         // P 
         bs_apply_sbox(bs_m64_hm);

@@ -62,7 +62,7 @@ void bs_apply_sbox(word_t * input);
 
 void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE]);
 
-void bs_generate_roundc_matrix_p_minimal ( word_t * bs_p_round_constant, word_t round);
+void bs_generate_roundc_matrix_p_minimal ( word_t * input, word_t * bs_p_round_constant, word_t round);
 void bs_generate_roundc_matrix_p ( word_t * bs_p_round_constant, word_t round);
 void printArray(word_t* array);
 #endif

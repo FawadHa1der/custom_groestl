@@ -1869,7 +1869,7 @@ void generate_roundc_matrix ( word_t * p_round_constant, word_t* q_round_constan
         }
 }
 
-void bs_generate_roundc_matrix_p_minimal ( word_t * p_round_constant, word_t round){
+void bs_generate_roundc_matrix_p_minimal (word_t * input, word_t * p_round_constant, word_t round){
 
     uint8_t bit_index = 0; 
     const word_t P_ROUND_INITIAL_CONSTANT = 0x7060504030201000ULL;
@@ -1890,7 +1890,8 @@ void bs_generate_roundc_matrix_p_minimal ( word_t * p_round_constant, word_t rou
             if (byte_constant & (1 << bit_index)){
                 // printf("round: %d, bit_index: %d\n", round, bit_index);
                 int index_into_bs_p_round_constant = byte_index * COLUMN_SIZE_BITS + bit_index;
-                p_round_constant[index_into_bs_p_round_constant] = 0xffffffffffffffffULL;
+                input[index_into_bs_p_round_constant] ^= 0xffffffffffffffffULL;
+                // p_round_constant[index_into_bs_p_round_constant] = 0xffffffffffffffffULL;
             }
         }
     }
@@ -2029,14 +2030,20 @@ void bs_cipher(word_t state[BLOCK_SIZE], word_t input[BLOCK_SIZE])
         // memset(bs_p_round_constant, 0, sizeof(bs_p_round_constant));
         // memset(bs_q_round_constant, 0xff, sizeof(bs_q_round_constant)); // setting to 0xff since we are XORing with 0xff in Q. reset start of every round.
 
-        // bs_generate_roundc_matrix_p_minimal(bs_p_round_constant, round);
+       bs_generate_roundc_matrix_p_minimal(bs_m64_hm ,bs_p_round_constant, round);
         // bs_generate_roundc_matrix_q_minimal(bs_q_round_constant, round);
 
-
         // XOR with round constants
+        // int dist_between_round_constants = 16;
+        // for (word_index = 0; word_index < BLOCK_SIZE; word_index+= WORDS_PER_BLOCK) {
+        //     bs_m64_hm[word_index+ (dist_between_round_constants*0) ] ^= 
+        //     bs_m64_hm[word_index+ 2] ^= P_ROUND_CONSTANTS[round][word_index]; // for P
+
+        // }
+
         for (word_index = 0; word_index < BLOCK_SIZE; word_index ++) {
             bs_m64_m[word_index] ^= Q_ROUND_CONSTANTS[round][word_index]; // for Q
-           bs_m64_hm[word_index] ^= P_ROUND_CONSTANTS[round][word_index]; // for P
+            // bs_m64_hm[word_index] ^= P_ROUND_CONSTANTS[round][word_index]; // for P
 
 
         //    bs_m64_m[word_index] ^= bs_q_round_constant[word_index]; // for Q
