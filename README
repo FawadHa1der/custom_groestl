@@ -7,4 +7,4 @@ The input should be a large array which can be divided into N chunks. N chunks a
 Some code has been borrowed from https://github.com/conorpp/bitsliced-aes. SBox and GF(2^8) multiplication circuits borrowed from http://cs-www.cs.yale.edu/homes/peralta/CircuitStuff/CMT.html. Though multiplication circuis have been simplified/modified for constant multiplication
 Thanks to Dr Rene Peralta.
 
-Copyright 2024 Fawad Haider
+
